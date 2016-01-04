@@ -138,8 +138,7 @@ void QProcessPrivate::startProcess()
 
     if (!success) {
         cleanup();
-        processError = QProcess::FailedToStart;
-        emit q->error(processError);
+        setErrorAndEmit(QProcess::FailedToStart);
         q->setProcessState(QProcess::NotRunning);
         return;
     }
@@ -161,7 +160,7 @@ void QProcessPrivate::startProcess()
     _q_startupNotification();
 }
 
-bool QProcessPrivate::processStarted()
+bool QProcessPrivate::processStarted(QString * /*errorMessage*/)
 {
     return processState == QProcess::Running;
 }
@@ -210,8 +209,7 @@ bool QProcessPrivate::waitForStarted(int)
     if (processError == QProcess::FailedToStart)
         return false;
 
-    processError = QProcess::Timedout;
-    q->setErrorString(QProcess::tr("Process operation timed out"));
+    setError(QProcess::Timedout);
     return false;
 }
 
@@ -251,8 +249,7 @@ bool QProcessPrivate::waitForFinished(int msecs)
         if (timer.hasTimedOut())
             break;
     }
-    processError = QProcess::Timedout;
-    q->setErrorString(QProcess::tr("Process operation timed out"));
+    setError(QProcess::Timedout);
     return false;
 }
 

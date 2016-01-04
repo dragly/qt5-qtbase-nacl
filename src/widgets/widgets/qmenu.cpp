@@ -102,9 +102,9 @@ class QTornOffMenu : public QMenu
             causedPopup.action = ((QTornOffMenu*)p)->d_func()->causedPopup.action;
             causedStack = ((QTornOffMenu*)p)->d_func()->calcCausedStack();
         }
-        QList<QPointer<QWidget> > calcCausedStack() const Q_DECL_OVERRIDE { return causedStack; }
+        QVector<QPointer<QWidget> > calcCausedStack() const Q_DECL_OVERRIDE { return causedStack; }
         QPointer<QMenu> causedMenu;
-        QList<QPointer<QWidget> > causedStack;
+        QVector<QPointer<QWidget> > causedStack;
     };
 public:
     QTornOffMenu(QMenu *p) : QMenu(*(new QTornOffMenuPrivate(p)))
@@ -192,11 +192,10 @@ void QMenuPrivate::syncPlatformMenu()
         return;
 
     QPlatformMenuItem *beforeItem = Q_NULLPTR;
-    QListIterator<QAction*> it(q->actions());
-    it.toBack();
-    while (it.hasPrevious()) {
+    const QList<QAction*> actions = q->actions();
+    for (QList<QAction*>::const_reverse_iterator it = actions.rbegin(), end = actions.rend(); it != end; ++it) {
         QPlatformMenuItem *menuItem = platformMenu->createMenuItem();
-        QAction *action = it.previous();
+        QAction *action = *it;
         menuItem->setTag(reinterpret_cast<quintptr>(action));
         QObject::connect(menuItem, SIGNAL(activated()), action, SLOT(trigger()), Qt::QueuedConnection);
         QObject::connect(menuItem, SIGNAL(hovered()), action, SIGNAL(hovered()), Qt::QueuedConnection);
@@ -236,9 +235,9 @@ QRect QMenuPrivate::popupGeometry(int screen) const
     }
 }
 
-QList<QPointer<QWidget> > QMenuPrivate::calcCausedStack() const
+QVector<QPointer<QWidget> > QMenuPrivate::calcCausedStack() const
 {
-    QList<QPointer<QWidget> > ret;
+    QVector<QPointer<QWidget> > ret;
     for(QWidget *widget = causedPopup.widget; widget; ) {
         ret.append(widget);
         if (QTornOffMenu *qtmenu = qobject_cast<QTornOffMenu*>(widget))
@@ -503,8 +502,8 @@ void QMenuPrivate::hideMenu(QMenu *menu)
     if (activeMenu == menu)
         activeMenu = 0;
     menu->d_func()->causedPopup.action = 0;
-    menu->d_func()->causedPopup.widget = 0;
     menu->close();
+    menu->d_func()->causedPopup.widget = 0;
     if (previousMouseMenu.data() == menu)
         handleEnterLeaveEvents(&previousMouseMenu, Q_NULLPTR);
 }
@@ -1122,7 +1121,7 @@ bool QMenuPrivate::mouseEventTaken(QMouseEvent *e)
     return false;
 }
 
-void QMenuPrivate::activateCausedStack(const QList<QPointer<QWidget> > &causedStack, QAction *action, QAction::ActionEvent action_e, bool self)
+void QMenuPrivate::activateCausedStack(const QVector<QPointer<QWidget> > &causedStack, QAction *action, QAction::ActionEvent action_e, bool self)
 {
     QBoolBlocker guard(activationRecursionGuard);
     if(self)
@@ -1170,7 +1169,7 @@ void QMenuPrivate::activateAction(QAction *action, QAction::ActionEvent action_e
     /* I have to save the caused stack here because it will be undone after popup execution (ie in the hide).
        Then I iterate over the list to actually send the events. --Sam
     */
-    const QList<QPointer<QWidget> > causedStack = calcCausedStack();
+    const QVector<QPointer<QWidget> > causedStack = calcCausedStack();
     if (action_e == QAction::Trigger) {
 #ifndef QT_NO_WHATSTHIS
         if (!inWhatsThisMode)
@@ -1232,7 +1231,7 @@ void QMenuPrivate::_q_actionTriggered()
         if (!activationRecursionGuard && actionGuard) {
             //in case the action has not been activated by the mouse
             //we check the parent hierarchy
-            QList< QPointer<QWidget> > list;
+            QVector< QPointer<QWidget> > list;
             for(QWidget *widget = q->parentWidget(); widget; ) {
                 if (qobject_cast<QMenu*>(widget)
 #ifndef QT_NO_MENUBAR
@@ -1265,7 +1264,7 @@ void QMenuPrivate::_q_platformMenuAboutToShow()
 #ifdef Q_OS_OSX
     if (platformMenu)
         Q_FOREACH (QAction *action, q->actions())
-            if (QWidget *widget = widgetItems.value(const_cast<QAction *>(action)))
+            if (QWidget *widget = widgetItems.value(action))
                 if (widget->parent() == q) {
                     QPlatformMenuItem *menuItem = platformMenu->menuItemForTag(reinterpret_cast<quintptr>(action));
                     moveWidgetToPlatformItem(widget, menuItem);
@@ -1431,7 +1430,7 @@ void QMenu::initStyleOption(QStyleOptionMenuItem *option, const QAction *action)
     do not support the signals: aboutToHide (), aboutToShow () and hovered ().
     It is not possible to display an icon in a native menu on Windows Mobile.
 
-    \section1 QMenu on Mac OS X with Qt Build Against Cocoa
+    \section1 QMenu on OS X with Qt Build Against Cocoa
 
     QMenu can be inserted only once in a menu/menubar. Subsequent insertions will
     have no effect or will result in a disabled menu item.
@@ -1443,7 +1442,7 @@ void QMenu::initStyleOption(QStyleOptionMenuItem *option, const QAction *action)
     addSeparator(), and addMenu().
 
     \sa QMenuBar, {fowler}{GUI Design Handbook: Menu, Drop-Down and Pop-Up},
-        {Application Example}, {Menus Example}, {Recent Files Example}
+        {Application Example}, {Menus Example}
 */
 
 
@@ -1570,6 +1569,100 @@ QAction *QMenu::addAction(const QString &text, const QObject *receiver, const ch
     addAction(action);
     return action;
 }
+
+/*!\fn QAction *QMenu::addAction(const QString &text, const QObject *receiver, PointerToMemberFunction method, const QKeySequence &shortcut = 0)
+
+    \since 5.6
+
+    \overload
+
+    This convenience function creates a new action with the text \a
+    text and an optional shortcut \a shortcut. The action's
+    \l{QAction::triggered()}{triggered()} signal is connected to the
+    \a method of the \a receiver. The function adds the newly created
+    action to the menu's list of actions and returns it.
+
+    QMenu takes ownership of the returned QAction.
+*/
+
+/*!\fn QAction *QMenu::addAction(const QString &text, Functor functor, const QKeySequence &shortcut = 0)
+
+    \since 5.6
+
+    \overload
+
+    This convenience function creates a new action with the text \a
+    text and an optional shortcut \a shortcut. The action's
+    \l{QAction::triggered()}{triggered()} signal is connected to the
+    \a functor. The function adds the newly created
+    action to the menu's list of actions and returns it.
+
+    QMenu takes ownership of the returned QAction.
+*/
+
+/*!\fn QAction *QMenu::addAction(const QString &text, const QObject *context, Functor functor, const QKeySequence &shortcut = 0)
+
+    \since 5.6
+
+    \overload
+
+    This convenience function creates a new action with the text \a
+    text and an optional shortcut \a shortcut. The action's
+    \l{QAction::triggered()}{triggered()} signal is connected to the
+    \a functor. The function adds the newly created
+    action to the menu's list of actions and returns it.
+
+    If \a context is destroyed, the functor will not be called.
+
+    QMenu takes ownership of the returned QAction.
+*/
+
+/*!\fn QAction *QMenu::addAction(const QIcon &icon, const QString &text, const QObject *receiver, PointerToMemberFunction method, const QKeySequence &shortcut = 0)
+
+    \since 5.6
+
+    \overload
+
+    This convenience function creates a new action with an \a icon
+    and some \a text and an optional shortcut \a shortcut. The action's
+    \l{QAction::triggered()}{triggered()} signal is connected to the
+    \a method of the \a receiver. The function adds the newly created
+    action to the menu's list of actions and returns it.
+
+    QMenu takes ownership of the returned QAction.
+*/
+
+/*!\fn QAction *QMenu::addAction(const QIcon &icon, const QString &text, Functor functor, const QKeySequence &shortcut = 0)
+
+    \since 5.6
+
+    \overload
+
+    This convenience function creates a new action with an \a icon
+    and some \a text and an optional shortcut \a shortcut. The action's
+    \l{QAction::triggered()}{triggered()} signal is connected to the
+    \a functor. The function adds the newly created
+    action to the menu's list of actions and returns it.
+
+    QMenu takes ownership of the returned QAction.
+*/
+
+/*!\fn QAction *QMenu::addAction(const QIcon &icon, const QString &text, const QObject *context, Functor functor, const QKeySequence &shortcut = 0)
+
+    \since 5.6
+
+    \overload
+
+    This convenience function creates a new action with an \a icon
+    and some \a text and an optional shortcut \a shortcut. The action's
+    \l{QAction::triggered()}{triggered()} signal is connected to the
+    \a functor. The function adds the newly created
+    action to the menu's list of actions and returns it.
+
+    If \a context is destroyed, the functor will not be called.
+
+    QMenu takes ownership of the returned QAction.
+*/
 
 /*!
     \overload
@@ -2493,7 +2586,11 @@ void QMenu::mousePressEvent(QMouseEvent *e)
     Q_D(QMenu);
     if (d->aboutToHide || d->mouseEventTaken(e))
         return;
-    if (!rect().contains(e->pos())) {
+    // Workaround for XCB on multiple screens which doesn't have offset. If the menu is open on one screen
+    // and mouse clicks on second screen, e->pos() is QPoint(0,0) and the menu doesn't hide. This trick makes
+    // possible to hide the menu when mouse clicks on another screen (e->screenPos() returns correct value).
+    // Only when mouse clicks in QPoint(0,0) on second screen, the menu doesn't hide.
+    if ((e->pos().isNull() && !e->screenPos().isNull()) || !rect().contains(e->pos())) {
          if (d->noReplayFor
              && QRect(d->noReplayFor->mapToGlobal(QPoint()), d->noReplayFor->size()).contains(e->globalPos()))
              setAttribute(Qt::WA_NoMouseReplay);
@@ -2585,7 +2682,7 @@ QMenu::event(QEvent *e)
             if (kev->key() == Qt::Key_Up || kev->key() == Qt::Key_Down
                 || kev->key() == Qt::Key_Left || kev->key() == Qt::Key_Right
                 || kev->key() == Qt::Key_Enter || kev->key() == Qt::Key_Return
-                || kev->key() == Qt::Key_Escape) {
+                || kev->matches(QKeySequence::Cancel)) {
                 e->accept();
                 return true;
             }
@@ -2871,27 +2968,6 @@ void QMenu::keyPressEvent(QKeyEvent *e)
         }
         break;
 
-    case Qt::Key_Escape:
-#ifdef QT_KEYPAD_NAVIGATION
-    case Qt::Key_Back:
-#endif
-        key_consumed = true;
-        if (d->tornoff) {
-            close();
-            return;
-        }
-        {
-            QPointer<QWidget> caused = d->causedPopup.widget;
-            d->hideMenu(this); // hide after getting causedPopup
-#ifndef QT_NO_MENUBAR
-            if (QMenuBar *mb = qobject_cast<QMenuBar*>(caused)) {
-                mb->d_func()->setCurrentAction(d->menuAction);
-                mb->d_func()->setKeyboardMode(true);
-            }
-#endif
-        }
-        break;
-
     case Qt::Key_Space:
         if (!style()->styleHint(QStyle::SH_Menu_SpaceActivatesItem, 0, this))
             break;
@@ -2926,6 +3002,28 @@ void QMenu::keyPressEvent(QKeyEvent *e)
 #endif
     default:
         key_consumed = false;
+    }
+
+    if (!key_consumed && (e->matches(QKeySequence::Cancel)
+#ifdef QT_KEYPAD_NAVIGATION
+        || e->key() == Qt::Key_Back
+#endif
+    )) {
+        key_consumed = true;
+        if (d->tornoff) {
+            close();
+            return;
+        }
+        {
+            QPointer<QWidget> caused = d->causedPopup.widget;
+            d->hideMenu(this); // hide after getting causedPopup
+#ifndef QT_NO_MENUBAR
+            if (QMenuBar *mb = qobject_cast<QMenuBar*>(caused)) {
+                mb->d_func()->setCurrentAction(d->menuAction);
+                mb->d_func()->setKeyboardMode(true);
+            }
+#endif
+        }
     }
 
     if (!key_consumed) {                                // send to menu bar
@@ -3048,7 +3146,7 @@ void QMenu::mouseMoveEvent(QMouseEvent *e)
         d->activeMenu->d_func()->setCurrentAction(0);
 
     QMenuSloppyState::MouseEventResult sloppyEventResult = d->sloppyState.processMouseEvent(e->localPos(), action, d->currentAction);
-    if (sloppyEventResult == QMenuSloppyState::EventShouldBePropogated) {
+    if (sloppyEventResult == QMenuSloppyState::EventShouldBePropagated) {
         d->setCurrentAction(action, d->mousePopupDelay);
     } else if (sloppyEventResult == QMenuSloppyState::EventDiscardsSloppyState) {
         d->sloppyState.reset();

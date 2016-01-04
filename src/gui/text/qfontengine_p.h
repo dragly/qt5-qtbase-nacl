@@ -49,6 +49,7 @@
 #include "QtCore/qatomic.h"
 #include <QtCore/qvarlengtharray.h>
 #include <QtCore/QLinkedList>
+#include <QtCore/qhashfunctions.h>
 #include "private/qtextengine_p.h"
 #include "private/qfont_p.h"
 
@@ -213,8 +214,8 @@ public:
     virtual QFixed underlinePosition() const;
 
     virtual qreal maxCharWidth() const = 0;
-    virtual qreal minLeftBearing() const { return qreal(); }
-    virtual qreal minRightBearing() const { return qreal(); }
+    virtual qreal minLeftBearing() const;
+    virtual qreal minRightBearing() const;
 
     virtual void getGlyphBearings(glyph_t glyph, qreal *leftBearing = 0, qreal *rightBearing = 0);
 
@@ -239,7 +240,7 @@ public:
     QFontEngineGlyphCache *glyphCache(const void *key, GlyphFormat format, const QTransform &transform) const;
 
     static const uchar *getCMap(const uchar *table, uint tableSize, bool *isSymbolFont, int *cmapSize);
-    static quint32 getTrueTypeGlyphIndex(const uchar *cmap, uint unicode);
+    static quint32 getTrueTypeGlyphIndex(const uchar *cmap, int cmapSize, uint unicode);
 
     static QByteArray convertToPostscriptFontFamilyName(const QByteArray &fontFamily);
 
@@ -322,18 +323,28 @@ private:
 
 private:
     QVariant m_userData;
+
+    mutable qreal m_minLeftBearing;
+    mutable qreal m_minRightBearing;
+
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QFontEngine::ShaperFlags)
 
 inline bool operator ==(const QFontEngine::FaceId &f1, const QFontEngine::FaceId &f2)
 {
-    return (f1.index == f2.index) && (f1.encoding == f2.encoding) && (f1.filename == f2.filename);
+    return f1.index == f2.index && f1.encoding == f2.encoding && f1.filename == f2.filename && f1.uuid == f2.uuid;
 }
 
-inline uint qHash(const QFontEngine::FaceId &f)
+inline uint qHash(const QFontEngine::FaceId &f, uint seed = 0)
+    Q_DECL_NOEXCEPT_EXPR(noexcept(qHash(f.filename)))
 {
-    return qHash((f.index << 16) + f.encoding) + qHash(f.filename + f.uuid);
+    QtPrivate::QHashCombine hash;
+    seed = hash(seed, f.filename);
+    seed = hash(seed, f.uuid);
+    seed = hash(seed, f.index);
+    seed = hash(seed, f.encoding);
+    return seed;
 }
 
 

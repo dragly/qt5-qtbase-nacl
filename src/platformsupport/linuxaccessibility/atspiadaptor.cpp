@@ -1431,7 +1431,9 @@ bool AtSpiAdaptor::accessibleInterface(QAccessibleInterface *interface, const QS
                       QSpiObjectReference(connection, QDBusObjectPath(QSPI_OBJECT_PATH_ROOT))));
     } else if (function == QLatin1String("GetChildren")) {
         QSpiObjectReferenceArray children;
-        for (int i = 0; i < interface->childCount(); ++i) {
+        const int numChildren = interface->childCount();
+        children.reserve(numChildren);
+        for (int i = 0; i < numChildren; ++i) {
             QString childPath = pathForInterface(interface->child(i));
             QSpiObjectReference ref(connection, QDBusObjectPath(childPath));
             children << ref;
@@ -1507,7 +1509,7 @@ QSpiRelationArray AtSpiAdaptor::relationSet(QAccessibleInterface *interface, con
     Q_FOREACH (const RelationPair &pair, relationInterfaces) {
 // FIXME: this loop seems a bit strange... "related" always have one item when we check.
 //And why is it a list, when it always have one item? And it seems to assume that the QAccessible::Relation enum maps directly to AtSpi
-        QList<QSpiObjectReference> related;
+        QSpiObjectReferenceArray related;
 
         QDBusObjectPath path = QDBusObjectPath(pathForInterface(pair.first));
         related.append(QSpiObjectReference(connection, path));
@@ -1747,7 +1749,9 @@ QSpiActionArray AtSpiAdaptor::getActions(QAccessibleInterface *interface) const
 {
     QAccessibleActionInterface *actionInterface = interface->actionInterface();
     QSpiActionArray actions;
-    Q_FOREACH (const QString &actionName, QAccessibleBridgeUtils::effectiveActionNames(interface)) {
+    const QStringList actionNames = QAccessibleBridgeUtils::effectiveActionNames(interface);
+    actions.reserve(actionNames.size());
+    Q_FOREACH (const QString &actionName, actionNames) {
         QSpiAction action;
         QStringList keyBindings;
 
@@ -2308,7 +2312,7 @@ bool AtSpiAdaptor::tableInterface(QAccessibleInterface *interface, const QString
             (column < 0) ||
             (row >= interface->tableInterface()->rowCount()) ||
             (column >= interface->tableInterface()->columnCount())) {
-            qAtspiDebug() << "WARNING: invalid index for tableInterface GetAccessibleAt (" << row << ", " << column << ")";
+            qAtspiDebug() << "WARNING: invalid index for tableInterface GetAccessibleAt (" << row << ", " << column << ')';
             return false;
         }
 
@@ -2327,7 +2331,7 @@ bool AtSpiAdaptor::tableInterface(QAccessibleInterface *interface, const QString
         int column = message.arguments().at(1).toInt();
         QAccessibleInterface *cell = interface->tableInterface()->cellAt(row, column);
         if (!cell) {
-            qAtspiDebug() << "WARNING: AtSpiAdaptor::GetIndexAt(" << row << "," << column << ") did not find a cell. " << interface;
+            qAtspiDebug() << "WARNING: AtSpiAdaptor::GetIndexAt(" << row << ',' << column << ") did not find a cell. " << interface;
             return false;
         }
         int index = interface->indexOfChild(cell);

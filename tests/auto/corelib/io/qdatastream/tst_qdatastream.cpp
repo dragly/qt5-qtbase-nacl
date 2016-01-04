@@ -264,7 +264,9 @@ static int NColorRoles[] = {
     QPalette::ToolTipText + 1,     // Qt_5_2
     QPalette::ToolTipText + 1,     // Qt_5_3
     QPalette::ToolTipText + 1,     // Qt_5_4
-    0                              // add the correct value for Qt_5_5 here later
+    QPalette::ToolTipText + 1,     // Qt_5_5
+    QPalette::ToolTipText + 1,     // Qt_5_6
+    0                              // add the correct value for Qt_5_7 here later
 };
 
 // Testing get/set functions
@@ -1837,7 +1839,7 @@ static QRegion qRegionData(int index)
     case 12: return QRegion(0, 0, 3, 3, QRegion::Ellipse);
 #else
     case 7:
-        qWarning("Skipping streaming of elliptical regions on embedded, Mac OS X, and X11;"
+        qWarning("Skipping streaming of elliptical regions on embedded, OS X, and X11;"
                  " our pointarray stuff is not that great at approximating.");
 #endif
     }

@@ -131,19 +131,18 @@
     before the handshake phase with setLocalCertificate() and
     setPrivateKey().
     \li The CA certificate database can be extended and customized with
-    addCaCertificate(), addCaCertificates(), setCaCertificates(),
-    addDefaultCaCertificate(), addDefaultCaCertificates(), and
-    setDefaultCaCertificates().
+    addCaCertificate(), addCaCertificates(), addDefaultCaCertificate(),
+    addDefaultCaCertificates(), and QSslConfiguration::defaultConfiguration().setCaCertificates().
     \endlist
 
-    \note If available, root certificates on Unix (excluding Mac OS X) will be
-    loaded on demand from the standard certificate directories. If
-    you do not want to load root certificates on demand, you need to call either
-    the static function setDefaultCaCertificates() before the first SSL handshake
-    is made in your application, (e.g. via
-    "QSslSocket::setDefaultCaCertificates(QSslSocket::systemCaCertificates());"),
-    or call setCaCertificates() on your QSslSocket instance prior to the SSL
-    handshake.
+    \note If available, root certificates on Unix (excluding OS X) will be
+    loaded on demand from the standard certificate directories. If you do not
+    want to load root certificates on demand, you need to call either
+    QSslConfiguration::defaultConfiguration().setCaCertificates() before the first
+    SSL handshake is made in your application (for example, via passing
+    QSslSocket::systemCaCertificates() to it), or call
+    QSslConfiguration::defaultConfiguration()::setCaCertificates() on your QSslSocket instance
+    prior to the SSL handshake.
 
     For more information about ciphers and certificates, refer to QSslCipher and
     QSslCertificate.
@@ -499,7 +498,7 @@ bool QSslSocket::setSocketDescriptor(qintptr socketDescriptor, SocketState state
         d->createPlainSocket(openMode);
     bool retVal = d->plainSocket->setSocketDescriptor(socketDescriptor, state, openMode);
     d->cachedSocketDescriptor = d->plainSocket->socketDescriptor();
-    setSocketError(d->plainSocket->error());
+    d->setError(d->plainSocket->error(), d->plainSocket->errorString());
     setSocketState(state);
     setOpenMode(openMode);
     setLocalPort(d->plainSocket->localPort());
@@ -1166,6 +1165,10 @@ QSslKey QSslSocket::privateKey() const
 }
 
 /*!
+    \deprecated
+
+    Use QSslConfiguration::ciphers() instead.
+
     Returns this socket's current cryptographic cipher suite. This
     list is used during the socket's handshake phase for choosing a
     session cipher. The returned list of ciphers is ordered by
@@ -1197,6 +1200,10 @@ QList<QSslCipher> QSslSocket::ciphers() const
 }
 
 /*!
+    \deprecated
+
+    USe QSslConfiguration::setCiphers() instead.
+
     Sets the cryptographic cipher suite for this socket to \a ciphers,
     which must contain a subset of the ciphers in the list returned by
     supportedCiphers().
@@ -1213,6 +1220,10 @@ void QSslSocket::setCiphers(const QList<QSslCipher> &ciphers)
 }
 
 /*!
+    \deprecated
+
+    Use QSslConfiguration::setCiphers() instead.
+
     Sets the cryptographic cipher suite for this socket to \a ciphers, which
     is a colon-separated list of cipher suite names. The ciphers are listed in
     order of preference, starting with the most preferred cipher. For example:
@@ -1230,7 +1241,7 @@ void QSslSocket::setCiphers(const QString &ciphers)
 {
     Q_D(QSslSocket);
     d->configuration.ciphers.clear();
-    foreach (const QString &cipherName, ciphers.split(QLatin1String(":"),QString::SkipEmptyParts)) {
+    foreach (const QString &cipherName, ciphers.split(QLatin1Char(':'), QString::SkipEmptyParts)) {
         QSslCipher cipher(cipherName);
         if (!cipher.isNull())
             d->configuration.ciphers << cipher;
@@ -1238,6 +1249,10 @@ void QSslSocket::setCiphers(const QString &ciphers)
 }
 
 /*!
+    \deprecated
+
+    Use QSslConfiguration::setCiphers() on the default QSslConfiguration instead.
+
     Sets the default cryptographic cipher suite for all sockets in
     this application to \a ciphers, which must contain a subset of the
     ciphers in the list returned by supportedCiphers().
@@ -1254,6 +1269,10 @@ void QSslSocket::setDefaultCiphers(const QList<QSslCipher> &ciphers)
 }
 
 /*!
+    \deprecated
+
+    Use QSslConfiguration::ciphers() on the default QSslConfiguration instead.
+
     Returns the default cryptographic cipher suite for all sockets in
     this application. This list is used during the socket's handshake
     phase when negotiating with the peer to choose a session cipher.
@@ -1273,6 +1292,10 @@ QList<QSslCipher> QSslSocket::defaultCiphers()
 }
 
 /*!
+    \deprecated
+
+    Use QSslConfiguration::supportedCiphers() instead.
+
     Returns the list of cryptographic ciphers supported by this
     system. This list is set by the system's SSL libraries and may
     vary from system to system.
@@ -1285,124 +1308,10 @@ QList<QSslCipher> QSslSocket::supportedCiphers()
 }
 
 /*!
-    \since 5.5
-
-    Returns this socket's current list of elliptic curves. This
-    list is used during the socket's handshake phase for choosing an
-    elliptic curve (when using an elliptic curve cipher).
-    The returned list of curves is ordered by descending preference
-    (i.e., the first curve in the list is the most preferred one).
-
-    By default, this list is empty. An empty default list means that the
-    handshake phase can choose any of the curves supported by this system's SSL
-    libraries (which may vary from system to system). The list of curves
-    supported by this system's SSL libraries is returned by
-    supportedEllipticCurves().
-
-    You can restrict the list of curves used for choosing the session cipher
-    for this socket by calling setEllipticCurves() with a subset of the
-    supported ciphers. You can revert to using the entire set by calling
-    setEllipticCurves() with the list returned by supportedEllipticCurves().
-
-    \sa setEllipticCurves(), defaultEllipticCurves(), setDefaultEllipticCurves(), supportedEllipticCurves()
-*/
-QVector<QSslEllipticCurve> QSslSocket::ellipticCurves() const
-{
-    Q_D(const QSslSocket);
-    return d->configuration.ellipticCurves;
-}
-
-/*!
-    \since 5.5
-
-    Sets the list of elliptic curves to be used by this socket to \a curves,
-    which must contain a subset of the curves in the list returned by
-    supportedEllipticCurves().
-
-    Restricting the elliptic curves must be done before the handshake
-    phase, where the session cipher is chosen.
-
-    If an empty list is set, then the handshake phase can choose any of the
-    curves supported by this system's SSL libraries (which may vary from system
-    to system). The list of curves supported by this system's SSL libraries is
-    returned by supportedEllipticCurves().
-
-    Use setCipher() in order to disable the usage of elliptic curve ciphers.
-
-    \sa ellipticCurves(), setDefaultEllipticCurves(), supportedEllipticCurves()
-*/
-void QSslSocket::setEllipticCurves(const QVector<QSslEllipticCurve> &curves)
-{
-    Q_D(QSslSocket);
-    d->configuration.ellipticCurves = curves;
-}
-
-/*!
-    \since 5.5
-
-    Sets the list of elliptic curves to be used by all sockets in this
-    application to \a curves, which must contain a subset of the curves in the
-    list returned by supportedEllipticCurves().
-
-    Restricting the default elliptic curves only affects SSL sockets
-    that perform their handshake phase after the default list has been changed.
-
-    If an empty list is set, then the handshake phase can choose any of the
-    curves supported by this system's SSL libraries (which may vary from system
-    to system). The list of curves supported by this system's SSL libraries is
-    returned by supportedEllipticCurves().
-
-    Use setDefaultCiphers() in order to disable the usage of elliptic curve ciphers.
-
-    \sa setEllipticCurves(), defaultEllipticCurves(), supportedEllipticCurves()
-*/
-void QSslSocket::setDefaultEllipticCurves(const QVector<QSslEllipticCurve> &curves)
-{
-    QSslSocketPrivate::setDefaultEllipticCurves(curves);
-}
-
-
-/*!
-    \since 5.5
-
-    Returns the default elliptic curves list for all sockets in
-    this application. This list is used during the socket's handshake
-    phase when negotiating with the peer to choose a session cipher.
-    The list is ordered by preference (i.e., the first curve in the
-    list is the most preferred one).
-
-    By default, this list is empty. An empty default list means that the
-    handshake phase can choose any of the curves supported by this system's SSL
-    libraries (which may vary from system to system). The list of curves
-    supported by this system's SSL libraries is returned by
-    supportedEllipticCurves().
-
-    \sa setDefaultEllipticCurves(), supportedEllipticCurves()
-*/
-QVector<QSslEllipticCurve> QSslSocket::defaultEllipticCurves()
-{
-    return QSslSocketPrivate::defaultEllipticCurves();
-}
-
-/*!
-    \since 5.5
-
-    Returns the list of elliptic curves supported by this
-    system. This list is set by the system's SSL libraries and may
-    vary from system to system.
-
-    \sa ellipticCurves(), setEllipticCurves(), defaultEllipticCurves()
-*/
-QVector<QSslEllipticCurve> QSslSocket::supportedEllipticCurves()
-{
-    return QSslSocketPrivate::supportedEllipticCurves();
-}
-
-/*!
   Searches all files in the \a path for certificates encoded in the
   specified \a format and adds them to this socket's CA certificate
-  database. \a path can be explicit, or it can contain wildcards in
-  the format specified by \a syntax. Returns \c true if one or more
+  database. \a path must be a file or a pattern matching one or more
+  files, as specified by \a syntax. Returns \c true if one or more
   certificates are added to the socket's CA certificate database;
   otherwise returns \c false.
 
@@ -1456,6 +1365,10 @@ void QSslSocket::addCaCertificates(const QList<QSslCertificate> &certificates)
 }
 
 /*!
+  \deprecated
+
+  Use QSslConfiguration::setCaCertificates() instead.
+
   Sets this socket's CA certificate database to be \a certificates.
   The certificate database must be set prior to the SSL handshake.
   The CA certificate database is used by the socket during the
@@ -1475,6 +1388,10 @@ void QSslSocket::setCaCertificates(const QList<QSslCertificate> &certificates)
 }
 
 /*!
+  \deprecated
+
+  Use QSslConfiguration::caCertificates() instead.
+
   Returns this socket's CA certificate database. The CA certificate
   database is used by the socket during the handshake phase to
   validate the peer's certificate. It can be moodified prior to the
@@ -1535,6 +1452,10 @@ void QSslSocket::addDefaultCaCertificates(const QList<QSslCertificate> &certific
 }
 
 /*!
+    \deprecated
+
+    Use QSslConfiguration::setCaCertificates() on the default QSslConfiguration instead.
+
     Sets the default CA certificate database to \a certificates. The
     default CA certificate database is originally set to your system's
     default CA certificate database. You can override the default CA
@@ -1552,6 +1473,10 @@ void QSslSocket::setDefaultCaCertificates(const QList<QSslCertificate> &certific
 }
 
 /*!
+    \deprecated
+
+    Use QSslConfiguration::caCertificates() on the default QSslConfiguration instead.
+
     Returns the current default CA certificate database. This database
     is originally set to your system's default CA certificate database.
     If no system default database is found, an empty database will be
@@ -1572,6 +1497,10 @@ QList<QSslCertificate> QSslSocket::defaultCaCertificates()
 }
 
 /*!
+    \deprecated
+
+    Use QSslConfiguration::systemDefaultCaCertificates instead.
+
     This function provides the CA certificate database
     provided by the operating system. The CA certificate database
     returned by this function is used to initialize the database
@@ -1601,8 +1530,7 @@ bool QSslSocket::waitForConnected(int msecs)
     bool retVal = d->plainSocket->waitForConnected(msecs);
     if (!retVal) {
         setSocketState(d->plainSocket->state());
-        setSocketError(d->plainSocket->error());
-        setErrorString(d->plainSocket->errorString());
+        d->setError(d->plainSocket->error(), d->plainSocket->errorString());
     }
     return retVal;
 }
@@ -1757,8 +1685,7 @@ bool QSslSocket::waitForDisconnected(int msecs)
     bool retVal = d->plainSocket->waitForDisconnected(qt_subtract_from_timeout(msecs, stopWatch.elapsed()));
     if (!retVal) {
         setSocketState(d->plainSocket->state());
-        setSocketError(d->plainSocket->error());
-        setErrorString(d->plainSocket->errorString());
+        d->setError(d->plainSocket->error(), d->plainSocket->errorString());
     }
     return retVal;
 }
@@ -2166,31 +2093,11 @@ void QSslSocketPrivate::setDefaultSupportedCiphers(const QList<QSslCipher> &ciph
 /*!
     \internal
 */
-QVector<QSslEllipticCurve> QSslSocketPrivate::defaultEllipticCurves()
-{
-    QSslSocketPrivate::ensureInitialized();
-    const QMutexLocker locker(&globalData()->mutex);
-    return globalData()->config->ellipticCurves;
-}
-
-/*!
-    \internal
-*/
 QVector<QSslEllipticCurve> QSslSocketPrivate::supportedEllipticCurves()
 {
     QSslSocketPrivate::ensureInitialized();
     const QMutexLocker locker(&globalData()->mutex);
     return globalData()->supportedEllipticCurves;
-}
-
-/*!
-    \internal
-*/
-void QSslSocketPrivate::setDefaultEllipticCurves(const QVector<QSslEllipticCurve> &curves)
-{
-    const QMutexLocker locker(&globalData()->mutex);
-    globalData()->config.detach();
-    globalData()->config->ellipticCurves = curves;
 }
 
 /*!
@@ -2491,15 +2398,22 @@ void QSslSocketPrivate::_q_stateChangedSlot(QAbstractSocket::SocketState state)
 */
 void QSslSocketPrivate::_q_errorSlot(QAbstractSocket::SocketError error)
 {
-    Q_Q(QSslSocket);
+    Q_UNUSED(error)
 #ifdef QSSLSOCKET_DEBUG
+    Q_Q(QSslSocket);
     qCDebug(lcSsl) << "QSslSocket::_q_errorSlot(" << error << ')';
     qCDebug(lcSsl) << "\tstate =" << q->state();
     qCDebug(lcSsl) << "\terrorString =" << q->errorString();
 #endif
-    q->setSocketError(plainSocket->error());
-    q->setErrorString(plainSocket->errorString());
-    emit q->error(error);
+    // this moves encrypted bytes from plain socket into our buffer
+    if (plainSocket->bytesAvailable()) {
+        qint64 tmpReadBufferMaxSize = readBufferMaxSize;
+        readBufferMaxSize = 0; // reset temporarily so the plain sockets completely drained drained
+        transmit();
+        readBufferMaxSize = tmpReadBufferMaxSize;
+    }
+
+    setErrorAndEmit(plainSocket->error(), plainSocket->errorString());
 }
 
 /*!
@@ -2564,7 +2478,6 @@ void QSslSocketPrivate::_q_flushReadBuffer()
 */
 void QSslSocketPrivate::_q_resumeImplementation()
 {
-    Q_Q(QSslSocket);
     if (plainSocket)
         plainSocket->resume();
     paused = false;
@@ -2572,9 +2485,7 @@ void QSslSocketPrivate::_q_resumeImplementation()
         if (verifyErrorsHaveBeenIgnored()) {
             continueHandshake();
         } else {
-            q->setErrorString(sslErrors.first().errorString());
-            q->setSocketError(QAbstractSocket::SslHandshakeFailedError);
-            emit q->error(QAbstractSocket::SslHandshakeFailedError);
+            setErrorAndEmit(QAbstractSocket::SslHandshakeFailedError, sslErrors.first().errorString());
             plainSocket->disconnectFromHost();
             return;
         }

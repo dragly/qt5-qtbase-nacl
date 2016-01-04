@@ -92,7 +92,7 @@ inline static QSize toLayoutItemSize(QWidgetPrivate *priv, const QSize &size)
     be expressed using hasHeightForWidth(), heightForWidth(), and
     minimumHeightForWidth(). For more explanation see the \e{Qt
     Quarterly} article
-    \l{http://doc.qt.digia.com/qq/qq04-height-for-width.html}{Trading
+    \l{http://doc.qt.io/archives/qq/qq04-height-for-width.html}{Trading
     Height for Width}.
 
     \sa QLayout
@@ -332,14 +332,11 @@ QSpacerItem * QSpacerItem::spacerItem()
 }
 
 /*!
+    \fn QSizePolicy QSpacerItem::sizePolicy() const
     \since 5.5
 
     Returns the size policy of this item.
 */
-QSizePolicy QSpacerItem::sizePolicy() const
-{
-    return sizeP;
-}
 
 /*!
     If this item is a QWidget, it is returned as a QWidget; otherwise

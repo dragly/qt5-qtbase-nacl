@@ -31,7 +31,7 @@
 **
 ****************************************************************************/
 
-#include "complexwidgets.h"
+#include "complexwidgets_p.h"
 
 #include <qaccessible.h>
 #include <qapplication.h>
@@ -172,7 +172,7 @@ QAccessibleTabBar::QAccessibleTabBar(QWidget *w)
 
 QAccessibleTabBar::~QAccessibleTabBar()
 {
-    foreach (QAccessible::Id id, m_childInterfaces.values())
+    foreach (QAccessible::Id id, m_childInterfaces)
         QAccessible::deleteAccessibleInterface(id);
 }
 

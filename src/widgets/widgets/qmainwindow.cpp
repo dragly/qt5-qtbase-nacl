@@ -263,7 +263,14 @@ void QMainWindowPrivate::init()
 
     An example of how to create menus follows:
 
-    \snippet mainwindows/application/mainwindow.cpp 26
+    \code
+    void MainWindow::createMenus()
+    {
+        fileMenu = menuBar()->addMenu(tr("&File"));
+        fileMenu->addAction(newAct);
+        fileMenu->addAction(openAct);
+        fileMenu->addAction(saveAct);
+    \endcode
 
     The \c createPopupMenu() function creates popup menus when the
     main window receives context menu events.  The default
@@ -290,7 +297,12 @@ void QMainWindowPrivate::init()
 
     An example of toolbar creation follows:
 
-    \snippet mainwindows/application/mainwindow.cpp 29
+    \code
+    void MainWindow::createToolBars()
+    {
+        fileToolBar = addToolBar(tr("File"));
+        fileToolBar->addAction(newAct);
+    \endcode
 
     \section2 Creating Dock Widgets
 
@@ -1225,6 +1237,35 @@ void QMainWindow::removeDockWidget(QDockWidget *dockwidget)
 Qt::DockWidgetArea QMainWindow::dockWidgetArea(QDockWidget *dockwidget) const
 { return d_func()->layout->dockWidgetArea(dockwidget); }
 
+
+/*!
+    \since 5.6
+    Resizes the dock widgets in the list \a docks to the corresponding size in
+    pixels from the list \a sizes. If \a orientation is Qt::Horizontal, adjusts
+    the width, otherwise adjusts the height of the dock widgets.
+    The sizes will be adjusted such that the maximum and the minimum sizes are
+    respected and the QMainWindow itself will not be resized.
+    Any additional/missing space is distributed amongst the widgets according
+    to the relative weight of the sizes.
+
+    Example:
+    \code
+    resizeDocks({blueWidget, yellowWidget}, {20 , 40}, Qt::Horizontal);
+    \endcode
+    If the blue and the yellow widget are nested on the same level they will be
+    resized such that the yellowWidget is twice as big as the blueWidget
+
+    If some widgets are grouped in tabs, only one widget per group should be
+    specified. Widgets not in the list might be changed to repect the constraints.
+*/
+void QMainWindow::resizeDocks(const QList<QDockWidget *> &docks,
+                              const QList<int> &sizes, Qt::Orientation orientation)
+{
+    d_func()->layout->layoutState.dockAreaLayout.resizeDocks(docks, sizes, orientation);
+    d_func()->layout->invalidate();
+}
+
+
 #endif // QT_NO_DOCKWIDGET
 
 /*!
@@ -1506,7 +1547,7 @@ bool QMainWindow::event(QEvent *event)
 
 /*!
     \property QMainWindow::unifiedTitleAndToolBarOnMac
-    \brief whether the window uses the unified title and toolbar look on Mac OS X
+    \brief whether the window uses the unified title and toolbar look on OS X
 
     Note that the Qt 5 implementation has several limitations compared to Qt 4:
     \list

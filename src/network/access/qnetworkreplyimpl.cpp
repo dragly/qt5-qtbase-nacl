@@ -65,8 +65,6 @@ inline QNetworkReplyImplPrivate::QNetworkReplyImplPrivate()
 
 void QNetworkReplyImplPrivate::_q_startOperation()
 {
-    Q_Q(QNetworkReplyImpl);
-
     // ensure this function is only being called once
     if (state == Working || state == Finished) {
         qDebug("QNetworkReplyImpl::_q_startOperation was called more than once");
@@ -85,6 +83,7 @@ void QNetworkReplyImplPrivate::_q_startOperation()
     }
 
 #ifndef QT_NO_BEARERMANAGEMENT
+    Q_Q(QNetworkReplyImpl);
     // Do not start background requests if they are not allowed by session policy
     QSharedPointer<QNetworkSession> session(manager->d_func()->getNetworkSession());
     QVariant isBackground = backend->request().attribute(QNetworkRequest::BackgroundRequestAttribute, QVariant::fromValue(false));
@@ -126,6 +125,13 @@ void QNetworkReplyImplPrivate::_q_startOperation()
         finished();
 #endif
         return;
+    } else {
+#ifndef QT_NO_BEARERMANAGEMENT
+        if (session) {
+            QObject::connect(session.data(), SIGNAL(stateChanged(QNetworkSession::State)),
+                             q, SLOT(_q_networkSessionStateChanged(QNetworkSession::State)), Qt::QueuedConnection);
+        }
+#endif
     }
 
 #ifndef QT_NO_BEARERMANAGEMENT
@@ -307,6 +313,16 @@ void QNetworkReplyImplPrivate::_q_networkSessionConnected()
         break;
     default:
         ;
+    }
+}
+
+void QNetworkReplyImplPrivate::_q_networkSessionStateChanged(QNetworkSession::State sessionState)
+{
+    if (sessionState == QNetworkSession::Disconnected
+            && (state != Idle || state != Reconnecting)) {
+        error(QNetworkReplyImpl::NetworkSessionFailedError,
+              QCoreApplication::translate("QNetworkReply", "Network session error."));
+        finished();
     }
 }
 

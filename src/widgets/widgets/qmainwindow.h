@@ -83,7 +83,7 @@ public:
     Q_ENUM(DockOption)
     Q_DECLARE_FLAGS(DockOptions, DockOption)
 
-    explicit QMainWindow(QWidget *parent = 0, Qt::WindowFlags flags = 0);
+    explicit QMainWindow(QWidget *parent = Q_NULLPTR, Qt::WindowFlags flags = Qt::WindowFlags());
     ~QMainWindow();
 
     QSize iconSize() const;
@@ -165,6 +165,9 @@ public:
     bool restoreDockWidget(QDockWidget *dockwidget);
 
     Qt::DockWidgetArea dockWidgetArea(QDockWidget *dockwidget) const;
+
+    void resizeDocks(const QList<QDockWidget *> &docks,
+                     const QList<int> &sizes, Qt::Orientation orientation);
 #endif // QT_NO_DOCKWIDGET
 
     QByteArray saveState(int version = 0) const;

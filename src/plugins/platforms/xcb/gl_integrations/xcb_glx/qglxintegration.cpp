@@ -175,7 +175,11 @@ QGLXContext::QGLXContext(QXcbScreen *screen, const QSurfaceFormat &format, QPlat
 void QGLXContext::init(QXcbScreen *screen, QPlatformOpenGLContext *share)
 {
     if (m_format.renderableType() == QSurfaceFormat::DefaultRenderableType)
+#if defined(QT_OPENGL_ES_2)
+        m_format.setRenderableType(QSurfaceFormat::OpenGLES);
+#else
         m_format.setRenderableType(QSurfaceFormat::OpenGL);
+#endif
     if (m_format.renderableType() != QSurfaceFormat::OpenGL && m_format.renderableType() != QSurfaceFormat::OpenGLES)
         return;
 
@@ -542,6 +546,9 @@ void QGLXContext::swapBuffers(QPlatformSurface *surface)
 
 void (*QGLXContext::getProcAddress(const QByteArray &procName)) ()
 {
+#ifdef QT_STATIC
+    return glXGetProcAddressARB(reinterpret_cast<const GLubyte *>(procName.constData()));
+#else
     typedef void *(*qt_glXGetProcAddressARB)(const GLubyte *);
     static qt_glXGetProcAddressARB glXGetProcAddressARB = 0;
     static bool resolved = false;
@@ -560,10 +567,12 @@ void (*QGLXContext::getProcAddress(const QByteArray &procName)) ()
             if (!glXGetProcAddressARB)
 #endif
             {
+#ifndef QT_NO_LIBRARY
                 extern const QString qt_gl_library_name();
 //                QLibrary lib(qt_gl_library_name());
                 QLibrary lib(QLatin1String("GL"));
                 glXGetProcAddressARB = (qt_glXGetProcAddressARB) lib.resolve("glXGetProcAddressARB");
+#endif
             }
         }
         resolved = true;
@@ -571,6 +580,7 @@ void (*QGLXContext::getProcAddress(const QByteArray &procName)) ()
     if (!glXGetProcAddressARB)
         return 0;
     return (void (*)())glXGetProcAddressARB(reinterpret_cast<const GLubyte *>(procName.constData()));
+#endif
 }
 
 QSurfaceFormat QGLXContext::format() const

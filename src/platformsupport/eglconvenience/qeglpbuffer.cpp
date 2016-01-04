@@ -49,13 +49,26 @@ QT_BEGIN_NAMESPACE
     and return a new instance of this class.
 */
 
-QEGLPbuffer::QEGLPbuffer(EGLDisplay display, const QSurfaceFormat &format, QOffscreenSurface *offscreenSurface)
+QEGLPbuffer::QEGLPbuffer(EGLDisplay display, const QSurfaceFormat &format, QOffscreenSurface *offscreenSurface,
+                         QEGLPlatformContext::Flags flags)
     : QPlatformOffscreenSurface(offscreenSurface)
     , m_format(format)
     , m_display(display)
     , m_pbuffer(EGL_NO_SURFACE)
 {
-    if (q_hasEglExtension(display, "EGL_KHR_surfaceless_context"))
+    bool hasSurfaceless = !flags.testFlag(QEGLPlatformContext::NoSurfaceless)
+        && q_hasEglExtension(display, "EGL_KHR_surfaceless_context");
+
+    // Disable surfaceless contexts on Mesa for now. As of 10.6.0 and Intel at least, some
+    // operations (glReadPixels) are unable to work without a surface since they at some
+    // point temporarily unbind the current FBO and then later blow up in some seemingly
+    // safe operations, like setting the viewport, that apparently need access to the
+    // read/draw surface in the Intel backend.
+    const char *vendor = eglQueryString(display, EGL_VENDOR); // hard to check for GL_ strings here, so blacklist all Mesa
+    if (vendor && strstr(vendor, "Mesa"))
+        hasSurfaceless = false;
+
+    if (hasSurfaceless)
         return;
 
     EGLConfig config = q_configFromGLFormat(m_display, m_format, false, EGL_PBUFFER_BIT);

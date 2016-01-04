@@ -1018,7 +1018,7 @@ QLayoutItem *QDockAreaLayoutInfo::plug(const QList<int> &path)
         index = -index - 1;
 
     if (path.count() > 1) {
-        const QDockAreaLayoutItem &item = item_list.at(index);
+        QDockAreaLayoutItem &item = item_list[index];
         Q_ASSERT(item.subinfo != 0);
         return item.subinfo->plug(path.mid(1));
     }
@@ -1064,7 +1064,7 @@ QLayoutItem *QDockAreaLayoutInfo::unplug(const QList<int> &path)
 
     const int index = path.first();
     if (path.count() > 1) {
-        const QDockAreaLayoutItem &item = item_list.at(index);
+        QDockAreaLayoutItem &item = item_list[index];
         Q_ASSERT(item.subinfo != 0);
         return item.subinfo->unplug(path.mid(1));
     }
@@ -1816,7 +1816,8 @@ void QDockAreaLayoutInfo::saveState(QDataStream &stream) const
             stream << flags;
 
             if (w->isWindow()) {
-                stream << w->x() << w->y() << w->width() << w->height();
+                const QRect geometry = w->geometry();
+                stream << geometry.x() << geometry.y() << geometry.width() << geometry.height();
             } else {
                 stream << item.pos << item.size << pick(o, item.minimumSize())
                         << pick(o, item.maximumSize());
@@ -2105,6 +2106,8 @@ bool QDockAreaLayoutInfo::updateTabBar() const
     const QSignalBlocker blocker(tabBar);
     bool gap = false;
 
+    const quintptr oldCurrentId = currentTabId();
+
     int tab_idx = 0;
     for (int i = 0; i < item_list.count(); ++i) {
         const QDockAreaLayoutItem &item = item_list.at(i);
@@ -2152,6 +2155,9 @@ bool QDockAreaLayoutInfo::updateTabBar() const
     while (tab_idx < tabBar->count()) {
         tabBar->removeTab(tab_idx);
     }
+
+    if (oldCurrentId > 0 && currentTabId() != oldCurrentId)
+        that->setCurrentTabId(oldCurrentId);
 
     //returns if the tabbar is visible or not
     return ( (gap ? 1 : 0) + tabBar->count()) > 1;
@@ -2211,8 +2217,10 @@ QSet<QTabBar*> QDockAreaLayoutInfo::usedTabBars() const
 QSet<QWidget*> QDockAreaLayoutInfo::usedSeparatorWidgets() const
 {
     QSet<QWidget*> result;
+    const int numSeparatorWidgets = separatorWidgets.count();
+    result.reserve(numSeparatorWidgets);
 
-    for (int i = 0; i < separatorWidgets.count(); ++i)
+    for (int i = 0; i < numSeparatorWidgets; ++i)
         result << separatorWidgets.at(i);
 
     for (int i = 0; i < item_list.count(); ++i) {
@@ -3097,6 +3105,53 @@ void QDockAreaLayout::tabifyDockWidget(QDockWidget *first, QDockWidget *second)
     QList<int> index = indexOfPlaceHolder(second->objectName());
     if (!index.isEmpty())
         remove(index);
+}
+
+void QDockAreaLayout::resizeDocks(const QList<QDockWidget *> &docks,
+                                  const QList<int> &sizes, Qt::Orientation o)
+{
+    if (docks.count() != sizes.count()) {
+        qWarning("QMainWidget::resizeDocks: size of the lists are not the same");
+        return;
+    }
+    int count = docks.count();
+    fallbackToSizeHints = false;
+    for (int i = 0; i < count; ++i) {
+        QList<int> path = indexOf(docks[i]);
+        if (path.isEmpty()) {
+            qWarning("QMainWidget::resizeDocks: one QDockWidget is not part of the layout");
+            continue;
+        }
+        int size = sizes[i];
+        if (size <= 0) {
+            qWarning("QMainWidget::resizeDocks: all sizes need to be larger than 0");
+            size = 1;
+        }
+
+        while (path.size() > 1) {
+            QDockAreaLayoutInfo *info = this->info(path);
+            if (!info->tabbed && info->o == o) {
+                info->item_list[path.last()].size = size;
+                int totalSize = 0;
+                foreach (const QDockAreaLayoutItem &item, info->item_list) {
+                    if (!item.skip()) {
+                        if (totalSize != 0)
+                            totalSize += sep;
+                        totalSize += item.size == -1 ? pick(o, item.sizeHint()) : item.size;
+                    }
+                }
+                size = totalSize;
+            }
+            path.removeLast();
+        }
+
+        const int dockNum = path.first();
+        Q_ASSERT(dockNum < QInternal::DockCount);
+        QRect &r = this->docks[dockNum].rect;
+        QSize s = r.size();
+        rpick(o, s) = size;
+        r.setSize(s);
+    }
 }
 
 void QDockAreaLayout::splitDockWidget(QDockWidget *after,

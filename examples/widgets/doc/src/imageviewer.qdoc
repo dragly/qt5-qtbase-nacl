@@ -124,10 +124,16 @@
 
     \snippet widgets/imageviewer/imageviewer.cpp 2
 
-    In the \c loadFile() function, we check if the file's
-    format is an image format by constructing a QImage which tries to
-    load the image from the file. If the constructor returns a null
-    image, we use a QMessageBox to alert the user.
+    In the \c loadFile() function, we instantiate a QImageReader
+    and enable automatic transformations by calling
+    QImageReader::setAutoTransform(). For files in JPEG format,
+    this ensures that portrait mode images of digital cameras are shown
+    correctly by applying the appropriate orientation read from the
+    EXIF meta data stored in the image file.
+
+    We then load the image using QImageReader::read(). If this returns
+    a null image, indicating that the file is not an image file,
+    we use a QMessageBox to alert the user.
 
     The QMessageBox class provides a modal dialog with a short
     message, an icon, and some buttons. As with QFileDialog the
@@ -281,7 +287,8 @@
     \snippet widgets/imageviewer/imageviewer.cpp 18
 
     In the private \c createAction() function, we create the
-    actions providing the application features.
+    actions providing the application features and populate
+    a menu with them.
 
     We assign a short-cut key to each action and connect them to the
     appropriate slots. We only enable the \c openAct and \c exitAct at
@@ -289,16 +296,10 @@
     been loaded into the application. In addition we make the \c
     fitToWindowAct \l {QAction::checkable}{checkable}.
 
-    \snippet widgets/imageviewer/imageviewer.cpp 19
-    \snippet widgets/imageviewer/imageviewer.cpp 20
-
-    In the private \c createMenu() function, we add the previously
-    created actions to the \uicontrol File, \uicontrol View and \uicontrol Help menus.
-
     The QMenu class provides a menu widget for use in menu bars,
     context menus, and other popup menus. The QMenuBar class provides
     a horizontal menu bar that consists of a list of pull-down menu
-    items. So at the end we put the menus in the \c {ImageViewer}'s
+    items. So we put the menus in the \c {ImageViewer}'s
     menu bar which we retrieve with the QMainWindow::menuBar()
     function.
 

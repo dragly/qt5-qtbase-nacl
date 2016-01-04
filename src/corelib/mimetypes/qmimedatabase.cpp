@@ -1,6 +1,7 @@
 /****************************************************************************
 **
 ** Copyright (C) 2015 The Qt Company Ltd.
+** Copyright (C) 2015 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author David Faure <david.faure@kdab.com>
 ** Contact: http://www.qt.io/licensing/
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -353,9 +354,10 @@ QMimeType QMimeDatabase::mimeTypeForFile(const QFileInfo &fileInfo, MatchMode mo
 
 #ifdef Q_OS_UNIX
     // Cannot access statBuf.st_mode from the filesystem engine, so we have to stat again.
+    // In addition we want to follow symlinks.
     const QByteArray nativeFilePath = QFile::encodeName(file.fileName());
     QT_STATBUF statBuffer;
-    if (QT_LSTAT(nativeFilePath.constData(), &statBuffer) == 0) {
+    if (QT_STAT(nativeFilePath.constData(), &statBuffer) == 0) {
         if (S_ISCHR(statBuffer.st_mode))
             return d->mimeTypeForName(QLatin1String("inode/chardevice"));
         if (S_ISBLK(statBuffer.st_mode))
@@ -434,6 +436,7 @@ QList<QMimeType> QMimeDatabase::mimeTypesForFileName(const QString &fileName) co
     QStringList matches = d->mimeTypeForFileName(fileName);
     QList<QMimeType> mimes;
     matches.sort(); // Make it deterministic
+    mimes.reserve(matches.count());
     foreach (const QString &mime, matches)
         mimes.append(d->mimeTypeForName(mime));
     return mimes;

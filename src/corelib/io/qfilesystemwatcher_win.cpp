@@ -186,7 +186,7 @@ QStringList QWindowsFileSystemWatcherEngine::addPaths(const QStringList &paths,
             }
             if (!found) {
                 QWindowsFileSystemWatcherEngineThread *thread = new QWindowsFileSystemWatcherEngineThread();
-                DEBUG() << "  ###Creating new thread" << thread << "(" << (threads.count()+1) << "threads)";
+                DEBUG() << "  ###Creating new thread" << thread << '(' << (threads.count()+1) << "threads)";
                 thread->handles.append(handle.handle);
                 thread->handleForDir.insert(QFileSystemWatcherPathKey(absolutePath), handle);
 
@@ -248,6 +248,7 @@ QStringList QWindowsFileSystemWatcherEngine::removePaths(const QStringList &path
                     // ###
                     files->removeAll(path);
                     directories->removeAll(path);
+                    it.remove();
 
                     if (h.isEmpty()) {
                         DEBUG() << "Closing handle" << handle.handle;
@@ -259,8 +260,6 @@ QStringList QWindowsFileSystemWatcherEngine::removePaths(const QStringList &path
 
                         thread->handleForDir.remove(QFileSystemWatcherPathKey(absolutePath));
                         // h is now invalid
-
-                        it.remove();
 
                         if (thread->handleForDir.isEmpty()) {
                             DEBUG() << "Stopping thread " << thread;

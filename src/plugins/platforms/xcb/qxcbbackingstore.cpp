@@ -49,6 +49,7 @@
 #include <qdebug.h>
 #include <qpainter.h>
 #include <qscreen.h>
+#include <QtGui/private/qhighdpiscaling_p.h>
 #include <qpa/qplatformgraphicsbuffer.h>
 
 #include <algorithm>
@@ -145,8 +146,8 @@ QXcbShmImage::QXcbShmImage(QXcbScreen *screen, const QSize &size, uint depth, QI
 
     int id = shmget(IPC_PRIVATE, segmentSize, IPC_CREAT | 0600);
     if (id == -1)
-        qWarning("QXcbShmImage: shmget() failed (%d) for size %d (%dx%d)",
-                 errno, segmentSize, size.width(), size.height());
+        qWarning("QXcbShmImage: shmget() failed (%d: %s) for size %d (%dx%d)",
+                 errno, strerror(errno), segmentSize, size.width(), size.height());
     else
         m_shm_info.shmid = id;
     m_shm_info.shmaddr = m_xcb_image->data = (quint8 *)shmat (m_shm_info.shmid, 0, 0);
@@ -310,17 +311,13 @@ QPaintDevice *QXcbBackingStore::paintDevice()
 
 void QXcbBackingStore::beginPaint(const QRegion &region)
 {
+    if (!m_image && !m_size.isEmpty())
+        resize(m_size, QRegion());
+
     if (!m_image)
         return;
-
-    int dpr = int(m_image->image()->devicePixelRatio());
-    const int windowDpr = int(window()->devicePixelRatio());
-    if (windowDpr != dpr) {
-        resize(window()->size(), QRegion());
-        dpr = int(m_image->image()->devicePixelRatio());
-    }
-
-    m_paintRegion = dpr == 1 ? region : QTransform::fromScale(dpr,dpr).map(region);
+    m_size = QSize();
+    m_paintRegion = region;
     m_image->preparePaint(m_paintRegion);
 
     if (m_image->image()->hasAlphaChannel()) {
@@ -369,18 +366,10 @@ void QXcbBackingStore::flush(QWindow *window, const QRegion &region, const QPoin
     if (!m_image || m_image->size().isEmpty())
         return;
 
-    const int dpr = int(window->devicePixelRatio());
-
-#ifndef QT_NO_DEBUG
-    const int imageDpr = int(m_image->image()->devicePixelRatio());
-    if (dpr != imageDpr)
-        qWarning() <<  "QXcbBackingStore::flush() wrong devicePixelRatio for backingstore image" << dpr << imageDpr;
-#endif
-
-    QSize imageSize = m_image->size() / dpr; //because we multiply with the DPR later
+    QSize imageSize = m_image->size();
 
     QRegion clipped = region;
-    clipped &= QRect(0, 0, window->width(), window->height());
+    clipped &= QRect(QPoint(), QHighDpi::toNativePixels(window->size(), window));
     clipped &= QRect(0, 0, imageSize.width(), imageSize.height()).translated(-offset);
 
     QRect bounds = clipped.boundingRect();
@@ -398,8 +387,8 @@ void QXcbBackingStore::flush(QWindow *window, const QRegion &region, const QPoin
 
     QVector<QRect> rects = clipped.rects();
     for (int i = 0; i < rects.size(); ++i) {
-        QRect rect = QRect(rects.at(i).topLeft() * dpr, rects.at(i).size() * dpr);
-        m_image->put(platformWindow->xcb_window(), rect.topLeft(), rect.translated(offset * dpr));
+        QRect rect = QRect(rects.at(i).topLeft(), rects.at(i).size());
+        m_image->put(platformWindow->xcb_window(), rect.topLeft(), rect.translated(offset));
     }
 
     Q_XCB_NOOP(connection());
@@ -430,13 +419,12 @@ void QXcbBackingStore::composeAndFlush(QWindow *window, const QRegion &region, c
 
 void QXcbBackingStore::resize(const QSize &size, const QRegion &)
 {
-    const int dpr = int(window()->devicePixelRatio());
-    const QSize xSize = size * dpr;
-    if (m_image && xSize == m_image->size() && dpr == m_image->image()->devicePixelRatio())
+    if (m_image && size == m_image->size())
         return;
     Q_XCB_NOOP(connection());
 
-    QXcbScreen *screen = static_cast<QXcbScreen *>(window()->screen()->handle());
+
+    QXcbScreen *screen = window()->screen() ? static_cast<QXcbScreen *>(window()->screen()->handle()) : 0;
     QPlatformWindow *pw = window()->handle();
     if (!pw) {
         window()->create();
@@ -445,13 +433,16 @@ void QXcbBackingStore::resize(const QSize &size, const QRegion &)
     QXcbWindow* win = static_cast<QXcbWindow *>(pw);
 
     delete m_image;
-    m_image = new QXcbShmImage(screen, xSize, win->depth(), win->imageFormat());
-    m_image->image()->setDevicePixelRatio(dpr);
+    if (!screen) {
+        m_image = 0;
+        m_size = size;
+        return;
+    }
+    m_image = new QXcbShmImage(screen, size, win->depth(), win->imageFormat());
     // Slow path for bgr888 VNC: Create an additional image, paint into that and
     // swap R and B while copying to m_image after each paint.
     if (win->imageNeedsRgbSwap()) {
-        m_rgbImage = QImage(xSize, win->imageFormat());
-        m_rgbImage.setDevicePixelRatio(dpr);
+        m_rgbImage = QImage(size, win->imageFormat());
     }
     Q_XCB_NOOP(connection());
 }
@@ -463,14 +454,12 @@ bool QXcbBackingStore::scroll(const QRegion &area, int dx, int dy)
     if (!m_image || m_image->image()->isNull())
         return false;
 
-    const int dpr = int(m_image->image()->devicePixelRatio());
-    QRegion xArea = dpr == 1 ? area : QTransform::fromScale(dpr,dpr).map(area);
     m_image->preparePaint(area);
 
-    QPoint delta(dx * dpr, dy * dpr);
-    const QVector<QRect> xRects = xArea.rects();
-    for (int i = 0; i < xRects.size(); ++i)
-        qt_scrollRectInImage(*m_image->image(), xRects.at(i), delta);
+    QPoint delta(dx, dy);
+    const QVector<QRect> rects = area.rects();
+    for (int i = 0; i < rects.size(); ++i)
+        qt_scrollRectInImage(*m_image->image(), rects.at(i), delta);
     return true;
 }
 

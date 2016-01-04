@@ -725,7 +725,7 @@ void QFont::setFamily(const QString &family)
     Returns the requested font style name, it will be used to match the
     font with irregular styles (that can't be normalized in other style
     properties). It depends on system font support, thus only works for
-    Mac OS X and X11 so far. On Windows irregular styles will be added
+    OS X and X11 so far. On Windows irregular styles will be added
     as separate font families so there is no need for this.
 
     \sa setFamily(), setStyle()
@@ -820,7 +820,7 @@ int QFont::pointSize() const
     \li Vertical hinting (light)
     \li Full hinting
     \row
-    \li Cocoa on Mac OS X
+    \li Cocoa on OS X
     \li No hinting
     \li No hinting
     \li No hinting
@@ -1860,14 +1860,9 @@ void QFont::removeSubstitutions(const QString &familyName)
 */
 QStringList QFont::substitutions()
 {
-    typedef QFontSubst::const_iterator QFontSubstConstIterator;
-
     QFontSubst *fontSubst = globalFontSubst();
     Q_ASSERT(fontSubst != 0);
-    QStringList ret;
-    const QFontSubstConstIterator cend = fontSubst->constEnd();
-    for (QFontSubstConstIterator it = fontSubst->constBegin(); it != cend; ++it)
-        ret.append(it.key());
+    QStringList ret = fontSubst->keys();
 
     ret.sort();
     return ret;
@@ -2115,6 +2110,9 @@ QString QFont::lastResortFamily() const
     return QString::fromLatin1("helvetica");
 }
 
+extern QStringList qt_fallbacksForFamily(const QString &family, QFont::Style style,
+                                         QFont::StyleHint styleHint, QChar::Script script);
+
 /*!
     \fn QString QFont::defaultFamily() const
 
@@ -2125,8 +2123,7 @@ QString QFont::lastResortFamily() const
 */
 QString QFont::defaultFamily() const
 {
-    QPlatformFontDatabase *fontDB = QGuiApplicationPrivate::platformIntegration()->fontDatabase();
-    const QStringList fallbacks = fontDB->fallbacksForFamily(QString(), QFont::StyleNormal
+    const QStringList fallbacks = qt_fallbacksForFamily(QString(), QFont::StyleNormal
                                       , QFont::StyleHint(d->request.styleHint), QChar::Script_Common);
     if (!fallbacks.isEmpty())
         return fallbacks.first();
@@ -2223,6 +2220,8 @@ QDataStream &operator<<(QDataStream &s, const QFont &font)
     }
     if (s.version() >= QDataStream::Qt_5_4)
         s << (quint8)font.d->request.hintingPreference;
+    if (s.version() >= QDataStream::Qt_5_6)
+        s << (quint8)font.d->capital;
     return s;
 }
 
@@ -2313,7 +2312,11 @@ QDataStream &operator>>(QDataStream &s, QFont &font)
         s >> value;
         font.d->request.hintingPreference = QFont::HintingPreference(value);
     }
-
+    if (s.version() >= QDataStream::Qt_5_6) {
+        quint8 value;
+        s >> value;
+        font.d->capital = QFont::Capitalization(value);
+    }
     return s;
 }
 

@@ -261,6 +261,19 @@ void Widget::argFunction()
     str.arg("%1f").arg("Hello");    // returns "Hellof %2"
     //! [13]
 
+    //! [97]
+    str = "%1%3%2";
+    str.arg("Hello").arg(20).arg(50); // returns "Hello500"
+
+    str = "%1%2%3";
+    str.arg("Hello").arg(50).arg(20); // returns "Hello5020"
+    //! [97]
+
+    //! [98]
+    str = "%1%2%3";
+    str.arg("Hello", QString::number(20), QString::number(50)); // returns "Hello5020"
+    //! [98]
+
     //! [14]
     str = QString("Decimal 63 is %1 in hexadecimal")
             .arg(63, 0, 16);
@@ -395,12 +408,12 @@ void Widget::firstIndexOfFunction()
     str.indexOf(QRegularExpression("m[aeiou]"), 0);       // returns 4
     //! [93]
 
-    //! [97]
+    //! [99]
     QString str = "the minimum";
     QRegularExpressionMatch match;
     str.indexOf(QRegularExpression("m[aeiou]"), 0, &match);       // returns 4
     // match.captured() == mi
-    //! [97]
+    //! [99]
 }
 
 void Widget::insertFunction()
@@ -452,12 +465,12 @@ void Widget::lastIndexOfFunction()
     str.lastIndexOf(QRegularExpression("m[aeiou]"));      // returns 8
     //! [94]
 
-    //! [98]
+    //! [100]
     QString str = "the minimum";
     QRegularExpressionMatch match;
     str.lastIndexOf(QRegularExpression("m[aeiou]"), -1, &match);      // returns 8
     // match.captured() == mu
-    //! [98]
+    //! [100]
 }
 
 void Widget::leftFunction()
@@ -764,10 +777,10 @@ void Widget::splitCaseSensitiveFunction()
     //! [62]
     QString str = "a,,b,c";
 
-    QStringList list1 = str.split(",");
+    QStringList list1 = str.split(',');
     // list1: [ "a", "", "b", "c" ]
 
-    QStringList list2 = str.split(",", QString::SkipEmptyParts);
+    QStringList list2 = str.split(',', QString::SkipEmptyParts);
     // list2: [ "a", "b", "c" ]
     //! [62]
 }

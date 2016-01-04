@@ -76,10 +76,21 @@ struct QDBusSlotCache
         int flags;
         int slotIdx;
         QVector<int> metaTypes;
+
+        void swap(Data &other) Q_DECL_NOTHROW
+        {
+            qSwap(flags,     other.flags);
+            qSwap(slotIdx,   other.slotIdx);
+            qSwap(metaTypes, other.metaTypes);
+        }
     };
     typedef QMultiHash<QString, Data> Hash;
     Hash hash;
+
+    void swap(QDBusSlotCache &other) Q_DECL_NOTHROW { qSwap(hash, other.hash); }
 };
+Q_DECLARE_SHARED(QDBusSlotCache::Data)
+Q_DECLARE_SHARED(QDBusSlotCache)
 
 class QDBusCallDeliveryEvent: public QMetaCallEvent
 {
@@ -120,29 +131,6 @@ private:
     int pathStartPos;
     QDBusMessage message;
     bool handled;
-};
-
-class QDBusConnectionCallbackEvent : public QEvent
-{
-public:
-    QDBusConnectionCallbackEvent()
-        : QEvent(User), subtype(Subtype(0))
-    { }
-
-    DBusWatch *watch;
-    union {
-        int timerId;
-        int fd;
-    };
-    int extra;
-
-    enum Subtype {
-        AddTimeout = 0,
-        KillTimer,
-        AddWatch,
-        //RemoveWatch,
-        ToggleWatch
-    } subtype;
 };
 
 QT_END_NAMESPACE

@@ -481,6 +481,7 @@ QColor::QColor(Spec spec)
     \sa setNamedColor(), name(), isValid()
 */
 
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
 /*!
     \fn QColor::QColor(const QColor &color)
 
@@ -488,6 +489,7 @@ QColor::QColor(Spec spec)
 
     \sa isValid()
 */
+#endif
 
 /*!
     \fn bool QColor::isValid() const
@@ -2073,7 +2075,7 @@ QColor QColor::fromHsl(int h, int s, int l, int a)
         || s < 0 || s > 255
         || l < 0 || l > 255
         || a < 0 || a > 255) {
-        qWarning("QColor::fromHsv: HSV parameters out of range");
+        qWarning("QColor::fromHsl: HSL parameters out of range");
         return QColor();
     }
 
@@ -2105,7 +2107,7 @@ QColor QColor::fromHslF(qreal h, qreal s, qreal l, qreal a)
         || (s < qreal(0.0) || s > qreal(1.0))
         || (l < qreal(0.0) || l > qreal(1.0))
         || (a < qreal(0.0) || a > qreal(1.0))) {
-        qWarning("QColor::fromHsvF: HSV parameters out of range");
+        qWarning("QColor::fromHslF: HSL parameters out of range");
         return QColor();
     }
 
@@ -2385,6 +2387,7 @@ QColor QColor::dark(int factor) const
     return hsv.convertTo(cspec);
 }
 
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
 /*!
     Assigns a copy of \a color to this color, and returns a reference to it.
 */
@@ -2394,6 +2397,7 @@ QColor &QColor::operator=(const QColor &color)
     ct.argb = color.ct.argb;
     return *this;
 }
+#endif
 
 /*! \overload
     Assigns a copy of \a color and returns a reference to this color.

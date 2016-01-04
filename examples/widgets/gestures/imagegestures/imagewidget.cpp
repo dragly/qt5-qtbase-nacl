@@ -200,8 +200,8 @@ void ImageWidget::openDirectory(const QString &path)
 
 QImage ImageWidget::loadImage(const QString &fileName)
 {
-    qDebug() << position << files << fileName;
     QImageReader reader(fileName);
+    reader.setAutoTransform(true);
     qCDebug(lcExample) << "loading" << QDir::toNativeSeparators(fileName) << position << '/' << files.size();
     if (!reader.canRead()) {
         qCWarning(lcExample) << QDir::toNativeSeparators(fileName) << ": can't load image";
@@ -229,7 +229,7 @@ void ImageWidget::goNextImage()
         prevImage = currentImage;
         currentImage = nextImage;
         if (position+1 < files.size())
-            nextImage = loadImage(path+QLatin1String("/")+files.at(position+1));
+            nextImage = loadImage(path + QLatin1Char('/') + files.at(position+1));
         else
             nextImage = QImage();
     }
@@ -246,7 +246,7 @@ void ImageWidget::goPrevImage()
         nextImage = currentImage;
         currentImage = prevImage;
         if (position > 0)
-            prevImage = loadImage(path+QLatin1String("/")+files.at(position-1));
+            prevImage = loadImage(path + QLatin1Char('/') + files.at(position-1));
         else
             prevImage = QImage();
     }
@@ -276,12 +276,12 @@ void ImageWidget::goToImage(int index)
     position = index;
 
     if (index > 0)
-        prevImage = loadImage(path+QLatin1String("/")+files.at(position-1));
+        prevImage = loadImage(path + QLatin1Char('/') + files.at(position-1));
     else
         prevImage = QImage();
-    currentImage = loadImage(path+QLatin1String("/")+files.at(position));
+    currentImage = loadImage(path + QLatin1Char('/') + files.at(position));
     if (position+1 < files.size())
-        nextImage = loadImage(path+QLatin1String("/")+files.at(position+1));
+        nextImage = loadImage(path + QLatin1Char('/') + files.at(position+1));
     else
         nextImage = QImage();
     update();

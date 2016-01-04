@@ -40,6 +40,9 @@
 #include <QtCore/QLibraryInfo>
 #include <QtCore/QDir>
 
+#include <algorithm>
+#include <iterator>
+
 QT_BEGIN_NAMESPACE
 
 void qt_registerFont(const QString &familyname, const QString &stylename,
@@ -343,17 +346,15 @@ QFontEngine *QPlatformFontDatabase::fontEngine(const QByteArray &fontData, qreal
 }
 
 /*!
+    \fn QStringList QPlatformFontDatabase::fallbacksForFamily(const QString &family, QFont::Style style, QFont::StyleHint styleHint, QChar::Script script) const
+
     Returns a list of alternative fonts for the specified \a family and
     \a style and \a script using the \a styleHint given.
+
+    Default implementation returns a list of fonts for which \a style and \a script support
+    has been reported during the font database population.
 */
-QStringList QPlatformFontDatabase::fallbacksForFamily(const QString &family, QFont::Style style, QFont::StyleHint styleHint, QChar::Script script) const
-{
-    Q_UNUSED(family);
-    Q_UNUSED(style);
-    Q_UNUSED(styleHint);
-    Q_UNUSED(script);
-    return QStringList();
-}
+// implemented in qfontdatabase.cpp
 
 /*!
     Adds an application font described by the font contained supplied \a fontData
@@ -452,11 +453,11 @@ bool QPlatformFontDatabase::fontsAlwaysScalable() const
  QList<int> QPlatformFontDatabase::standardSizes() const
 {
     QList<int> ret;
-    static const unsigned short standard[] =
-        { 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72, 0 };
-    ret.reserve(int(sizeof(standard) / sizeof(standard[0])));
-    const unsigned short *sizes = standard;
-    while (*sizes) ret << *sizes++;
+    static const quint8 standard[] =
+        { 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72 };
+    static const int num_standards = int(sizeof standard / sizeof *standard);
+    ret.reserve(num_standards);
+    std::copy(standard, standard + num_standards, std::back_inserter(ret));
     return ret;
 }
 
@@ -473,7 +474,7 @@ QFontEngine::SubpixelAntialiasingType QPlatformFontDatabase::subpixelAntialiasin
 // ### copied to tools/makeqpf/qpf2.cpp
 
 // see the Unicode subset bitfields in the MSDN docs
-static const ushort requiredUnicodeBits[QFontDatabase::WritingSystemsCount][2] = {
+static const quint8 requiredUnicodeBits[QFontDatabase::WritingSystemsCount][2] = {
     { 127, 127 }, // Any
     { 0, 127 },   // Latin
     { 7, 127 },   // Greek

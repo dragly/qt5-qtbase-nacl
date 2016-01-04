@@ -274,7 +274,7 @@ QStringList QJsonObject::keys() const
         return QStringList();
 
     QStringList keys;
-
+    keys.reserve(o->length);
     for (uint i = 0; i < o->length; ++i) {
         QJsonPrivate::Entry *e = o->entryAt(i);
         keys.append(e->key());
@@ -693,6 +693,11 @@ QJsonObject::const_iterator QJsonObject::constFind(const QString &key) const
     \internal
 */
 
+/*! \typedef QJsonObject::iterator::pointer
+
+    \internal
+*/
+
 /*! \fn QJsonObject::iterator::iterator()
 
     Constructs an uninitialized iterator.
@@ -891,6 +896,11 @@ QJsonObject::const_iterator QJsonObject::constFind(const QString &key) const
 */
 
 /*! \typedef QJsonObject::const_iterator::value_type
+
+    \internal
+*/
+
+/*! \typedef QJsonObject::const_iterator::pointer
 
     \internal
 */

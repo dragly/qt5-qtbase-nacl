@@ -546,7 +546,8 @@ void QComboBoxPrivateContainer::setItemView(QAbstractItemView *itemView)
         disconnect(view, SIGNAL(destroyed()),
                    this, SLOT(viewDestroyed()));
 
-        delete view;
+        if (isAncestorOf(view))
+            delete view;
         view = 0;
     }
 
@@ -653,8 +654,9 @@ void QComboBoxPrivateContainer::changeEvent(QEvent *e)
 bool QComboBoxPrivateContainer::eventFilter(QObject *o, QEvent *e)
 {
     switch (e->type()) {
-    case QEvent::ShortcutOverride:
-        switch (static_cast<QKeyEvent*>(e)->key()) {
+    case QEvent::ShortcutOverride: {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent*>(e);
+        switch (keyEvent->key()) {
         case Qt::Key_Enter:
         case Qt::Key_Return:
 #ifdef QT_KEYPAD_NAVIGATION
@@ -666,17 +668,21 @@ bool QComboBoxPrivateContainer::eventFilter(QObject *o, QEvent *e)
             }
             return true;
         case Qt::Key_Down:
-            if (!(static_cast<QKeyEvent*>(e)->modifiers() & Qt::AltModifier))
+            if (!(keyEvent->modifiers() & Qt::AltModifier))
                 break;
             // fall through
         case Qt::Key_F4:
-        case Qt::Key_Escape:
             combo->hidePopup();
             return true;
         default:
+            if (keyEvent->matches(QKeySequence::Cancel)) {
+                combo->hidePopup();
+                return true;
+            }
             break;
         }
-    break;
+        break;
+    }
     case QEvent::MouseMove:
         if (isVisible()) {
             QMouseEvent *m = static_cast<QMouseEvent *>(e);
@@ -1764,12 +1770,15 @@ void QComboBox::setLineEdit(QLineEdit *edit)
     delete d->lineEdit;
 
     d->lineEdit = edit;
+    qt_widget_private(d->lineEdit)->inheritsInputMethodHints = 1;
     if (d->lineEdit->parent() != this)
         d->lineEdit->setParent(this);
     connect(d->lineEdit, SIGNAL(returnPressed()), this, SLOT(_q_returnPressed()));
     connect(d->lineEdit, SIGNAL(editingFinished()), this, SLOT(_q_editingFinished()));
     connect(d->lineEdit, SIGNAL(textChanged(QString)), this, SIGNAL(editTextChanged(QString)));
     connect(d->lineEdit, SIGNAL(textChanged(QString)), this, SIGNAL(currentTextChanged(QString)));
+    connect(d->lineEdit, SIGNAL(cursorPositionChanged(int,int)), this, SLOT(updateMicroFocus()));
+    connect(d->lineEdit, SIGNAL(selectionChanged()), this, SLOT(updateMicroFocus()));
     d->lineEdit->setFrame(false);
     d->lineEdit->setContextMenuPolicy(Qt::NoContextMenu);
     d->updateFocusPolicy();
@@ -2092,8 +2101,10 @@ void QComboBoxPrivate::setCurrentIndex(const QModelIndex &mi)
         const QString newText = itemText(normalized);
         if (lineEdit->text() != newText) {
             lineEdit->setText(newText);
+#ifndef QT_NO_COMPLETER
             if (lineEdit->completer())
                 lineEdit->completer()->setCompletionPrefix(newText);
+#endif
         }
         updateLineEditGeometry();
     }
@@ -2263,6 +2274,7 @@ void QComboBox::insertItems(int index, const QStringList &list)
     // construct a QStandardItem, reducing the number of expensive signals from the model
     if (QStandardItemModel *m = qobject_cast<QStandardItemModel*>(d->model)) {
         QList<QStandardItem *> items;
+        items.reserve(insertCount);
         QStandardItem *hiddenRoot = m->invisibleRootItem();
         for (int i = 0; i < insertCount; ++i)
             items.append(new QStandardItem(list.at(i)));
@@ -2699,7 +2711,7 @@ void QComboBox::showPopup()
         qScrollEffect(container, scrollDown ? QEffects::DownScroll : QEffects::UpScroll, 150);
 #endif
 
-// Don't disable updates on Mac OS X. Windows are displayed immediately on this platform,
+// Don't disable updates on OS X. Windows are displayed immediately on this platform,
 // which means that the window will be visible before the call to container->show() returns.
 // If updates are disabled at this point we'll miss our chance at painting the popup
 // menu before it's shown, causing flicker since the window then displays the standard gray
@@ -3023,9 +3035,6 @@ void QComboBox::mousePressEvent(QMouseEvent *e)
         d->showPopupFromMouseEvent(e);
 }
 
-/*!
-    \reimp
-*/
 void QComboBoxPrivate::showPopupFromMouseEvent(QMouseEvent *e)
 {
     Q_Q(QComboBox);
@@ -3233,6 +3242,9 @@ void QComboBox::keyReleaseEvent(QKeyEvent *e)
 #ifndef QT_NO_WHEELEVENT
 void QComboBox::wheelEvent(QWheelEvent *e)
 {
+#ifdef Q_OS_DARWIN
+    Q_UNUSED(e);
+#else
     Q_D(QComboBox);
     if (!d->viewContainer()->isVisible()) {
         int newIndex = currentIndex();
@@ -3253,6 +3265,7 @@ void QComboBox::wheelEvent(QWheelEvent *e)
         }
         e->accept();
     }
+#endif
 }
 #endif
 

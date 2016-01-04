@@ -342,7 +342,7 @@ QAndroidInputContext::QAndroidInputContext()
     if (clazz == NULL) {
         qCritical() << "Native registration unable to find class '"
                     << QtNativeInputConnectionClassName
-                    << "'";
+                    << '\'';
         return;
     }
 
@@ -350,7 +350,7 @@ QAndroidInputContext::QAndroidInputContext()
     if (env->RegisterNatives(clazz, methods, sizeof(methods) / sizeof(methods[0])) < 0) {
         qCritical() << "RegisterNatives failed for '"
                     << QtNativeInputConnectionClassName
-                    << "'";
+                    << '\'';
         return;
     }
 
@@ -358,7 +358,7 @@ QAndroidInputContext::QAndroidInputContext()
     if (clazz == NULL) {
         qCritical() << "Native registration unable to find class '"
                     << QtExtractedTextClassName
-                    << "'";
+                    << '\'';
         return;
     }
 
@@ -512,7 +512,7 @@ void QAndroidInputContext::invokeAction(QInputMethod::Action action, int cursorP
 
 QRectF QAndroidInputContext::keyboardRect() const
 {
-    return QPlatformInputContext::keyboardRect();
+    return QtAndroidInput::softwareKeyboardRect();
 }
 
 bool QAndroidInputContext::isAnimating() const
@@ -545,7 +545,9 @@ void QAndroidInputContext::showInputPanel()
                                          rect.top(),
                                          rect.width(),
                                          rect.height(),
-                                         query->value(Qt::ImHints).toUInt());
+                                         query->value(Qt::ImHints).toUInt(),
+                                         query->value(Qt::ImEnterKeyType).toUInt()
+                                        );
 }
 
 void QAndroidInputContext::showInputPanelLater(Qt::ApplicationState state)
@@ -649,6 +651,11 @@ jboolean QAndroidInputContext::deleteSurroundingText(jint leftLength, jint right
 
     m_composingText.clear();
     m_composingTextStart = -1;
+
+    if (leftLength < 0) {
+        rightLength += -leftLength;
+        leftLength = 0;
+    }
 
     QInputMethodEvent event;
     event.setCommitString(QString(), -leftLength, leftLength+rightLength);
@@ -912,7 +919,7 @@ jboolean QAndroidInputContext::setComposingRegion(jint start, jint end)
     m_blockUpdateSelection = updateSelectionWasBlocked;
 
 #ifdef QT_DEBUG_ANDROID_IM_PROTOCOL
-     QSharedPointer<QInputMethodQueryEvent> query2 = focusObjectInputMethodQuery();
+     QSharedPointer<QInputMethodQueryEvent> query2 = focusObjectInputMethodQueryThreadSafe();
      if (!query2.isNull()) {
          qDebug() << "Setting. Prev local cpos:" << localPos << "block pos:" <<blockPosition << "comp.start:" << m_composingTextStart << "rel.start:" << relativeStart << "len:" << length << "cpos attr:" << localPos - localStart;
          qDebug() << "New cursor pos" << getAbsoluteCursorPosition(query2);

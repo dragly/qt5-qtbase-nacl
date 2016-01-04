@@ -17,7 +17,8 @@ HEADERS +=  \
         global/qisenum.h \
         global/qtypetraits.h \
         global/qflags.h \
-        global/qhooks_p.h
+        global/qhooks_p.h \
+        global/qversiontagging.h
 
 SOURCES += \
         global/archdetect.cpp \
@@ -27,7 +28,8 @@ SOURCES += \
 	global/qmalloc.cpp \
         global/qnumeric.cpp \
         global/qlogging.cpp \
-        global/qhooks.cpp
+        global/qhooks.cpp \
+        global/qversiontagging.cpp
 
 # qlibraryinfo.cpp includes qconfig.cpp
 INCLUDEPATH += $$QT_BUILD_TREE/src/corelib/global
@@ -41,7 +43,7 @@ LIBS_PRIVATE += $$QMAKE_LIBS_EXECINFO
 if(linux*|hurd*):!cross_compile:!static:!*-armcc* {
    QMAKE_LFLAGS += -Wl,-e,qt_core_boilerplate
    prog=$$quote(if (/program interpreter: (.*)]/) { print $1; })
-   DEFINES += ELF_INTERPRETER=\\\"$$system(readelf -l /bin/ls | perl -n -e \'$$prog\')\\\"
+   DEFINES += ELF_INTERPRETER=\\\"$$system(LC_ALL=C readelf -l /bin/ls | perl -n -e \'$$prog\')\\\"
 }
 
 slog2 {
@@ -53,4 +55,8 @@ journald {
     CONFIG += link_pkgconfig
     PKGCONFIG_PRIVATE += libsystemd-journal
     DEFINES += QT_USE_JOURNALD
+}
+
+syslog {
+    DEFINES += QT_USE_SYSLOG
 }

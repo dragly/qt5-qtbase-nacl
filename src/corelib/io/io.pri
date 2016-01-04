@@ -149,7 +149,9 @@ win32 {
         mac {
             SOURCES += io/qsettings_mac.cpp
             OBJECTIVE_SOURCES += io/qurl_mac.mm
-
+        }
+        freebsd: LIBS_PRIVATE += -lutil         # qlockfile_unix.cpp requires this
+        mac {
             osx {
                 OBJECTIVE_SOURCES += io/qfilesystemwatcher_fsevents.mm
                 HEADERS += io/qfilesystemwatcher_fsevents_p.h
@@ -161,6 +163,7 @@ win32 {
             } else:ios {
                 OBJECTIVE_SOURCES += io/qstandardpaths_ios.mm
                 SOURCES += io/qstorageinfo_mac.cpp
+                LIBS += -framework MobileCoreServices
             } else {
                 SOURCES += io/qstandardpaths_unix.cpp
             }

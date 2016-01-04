@@ -68,6 +68,7 @@ extern "C" {
 }
 
 QT_BEGIN_NAMESPACE
+QT_WARNING_DISABLE_GCC("-Wclobbered")
 
 Q_GUI_EXPORT void QT_FASTCALL qt_convert_rgb888_to_rgb32(quint32 *dst, const uchar *src, int len);
 typedef void (QT_FASTCALL *Rgb888ToRgb32Converter)(quint32 *dst, const uchar *src, int len);
@@ -710,6 +711,7 @@ public:
     enum State {
         Ready,
         ReadHeader,
+        ReadingEnd,
         Error
     };
 
@@ -929,8 +931,6 @@ bool QJpegHandlerPrivate::readJpegHeader(QIODevice *device)
             if (!exifData.isEmpty()) {
                 // Exif data present
                 int exifOrientation = getExifOrientation(exifData);
-                if (exifOrientation == -1)
-                    return false;
                 if (exifOrientation > 0)
                     transformation = exif2Qt(exifOrientation);
             }
@@ -960,7 +960,7 @@ bool QJpegHandlerPrivate::read(QImage *image)
             for (int i = 0; i < readTexts.size()-1; i+=2)
                 image->setText(readTexts.at(i), readTexts.at(i+1));
 
-            state = Ready;
+            state = ReadingEnd;
             return true;
         }
 
@@ -978,9 +978,8 @@ extern "C" void qt_convert_rgb888_to_rgb32_mips_dspr2_asm(quint32 *dst, const uc
 QJpegHandler::QJpegHandler()
     : d(new QJpegHandlerPrivate(this))
 {
-#if defined(__ARM_NEON__) && !defined(Q_PROCESSOR_ARM_64)
+#if defined(__ARM_NEON__)
     // from qimage_neon.cpp
-
     if (qCpuHasFeature(NEON))
         d->rgb888ToRgb32ConverterPtr = qt_convert_rgb888_to_rgb32_neon;
 #endif
@@ -1008,7 +1007,7 @@ bool QJpegHandler::canRead() const
     if(d->state == QJpegHandlerPrivate::Ready && !canRead(device()))
         return false;
 
-    if (d->state != QJpegHandlerPrivate::Error) {
+    if (d->state != QJpegHandlerPrivate::Error && d->state != QJpegHandlerPrivate::ReadingEnd) {
         setFormat("jpeg");
         return true;
     }

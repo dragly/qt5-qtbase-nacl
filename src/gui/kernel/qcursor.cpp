@@ -43,6 +43,7 @@
 
 #include <qpa/qplatformcursor.h>
 #include <private/qguiapplication_p.h>
+#include <private/qhighdpiscaling_p.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -177,9 +178,14 @@ QT_BEGIN_NAMESPACE
 */
 QPoint QCursor::pos(const QScreen *screen)
 {
-    if (screen)
-        if (const QPlatformCursor *cursor = screen->handle()->cursor())
-            return cursor->pos();
+    if (screen) {
+        if (const QPlatformCursor *cursor = screen->handle()->cursor()) {
+            const QPlatformScreen *ps = screen->handle();
+            QPoint nativePos = cursor->pos();
+            ps = ps->screenForPosition(nativePos);
+            return QHighDpi::fromNativePixels(nativePos, ps->screen());
+        }
+    }
     return QGuiApplicationPrivate::lastCursorPosition.toPoint();
 }
 
@@ -231,12 +237,12 @@ void QCursor::setPos(QScreen *screen, int x, int y)
 {
     if (screen) {
         if (QPlatformCursor *cursor = screen->handle()->cursor()) {
-            const QPoint pos = QPoint(x, y);
+            const QPoint devicePos = QHighDpi::toNativePixels(QPoint(x, y), screen);
             // Need to check, since some X servers generate null mouse move
             // events, causing looping in applications which call setPos() on
             // every mouse move event.
-            if (pos != cursor->pos())
-                cursor->setPos(pos);
+            if (devicePos != cursor->pos())
+                cursor->setPos(devicePos);
         }
     }
 }
@@ -387,7 +393,7 @@ QCursor::QCursor(const QPixmap &pixmap, int hotX, int hotY)
         bmm.fill(Qt::color1);
     }
 
-    d = QCursorData::setBitmap(bm, bmm, hotX, hotY);
+    d = QCursorData::setBitmap(bm, bmm, hotX, hotY, pixmap.devicePixelRatio());
     d->pixmap = pixmap;
 }
 
@@ -430,7 +436,7 @@ QCursor::QCursor(const QPixmap &pixmap, int hotX, int hotY)
 QCursor::QCursor(const QBitmap &bitmap, const QBitmap &mask, int hotX, int hotY)
     : d(0)
 {
-    d = QCursorData::setBitmap(bitmap, mask, hotX, hotY);
+    d = QCursorData::setBitmap(bitmap, mask, hotX, hotY, 1.0);
 }
 
 /*!
@@ -650,7 +656,7 @@ void QCursorData::initialize()
     QCursorData::initialized = true;
 }
 
-QCursorData *QCursorData::setBitmap(const QBitmap &bitmap, const QBitmap &mask, int hotX, int hotY)
+QCursorData *QCursorData::setBitmap(const QBitmap &bitmap, const QBitmap &mask, int hotX, int hotY, qreal devicePixelRatio)
 {
     if (!QCursorData::initialized)
         QCursorData::initialize();
@@ -664,8 +670,8 @@ QCursorData *QCursorData::setBitmap(const QBitmap &bitmap, const QBitmap &mask, 
     d->bm  = new QBitmap(bitmap);
     d->bmm = new QBitmap(mask);
     d->cshape = Qt::BitmapCursor;
-    d->hx = hotX >= 0 ? hotX : bitmap.width() / 2;
-    d->hy = hotY >= 0 ? hotY : bitmap.height() / 2;
+    d->hx = hotX >= 0 ? hotX : bitmap.width() / 2 / devicePixelRatio;
+    d->hy = hotY >= 0 ? hotY : bitmap.height() / 2 / devicePixelRatio;
 
     return d;
 }

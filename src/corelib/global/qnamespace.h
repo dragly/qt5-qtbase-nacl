@@ -496,6 +496,8 @@ public:
         AA_UseSoftwareOpenGL = 17,
         AA_ShareOpenGLContexts = 18,
         AA_SetPalette = 19,
+        AA_EnableHighDpiScaling = 20,
+        AA_DisableHighDpiScaling = 21,
 
         // Add new attributes before this line
         AA_AttributeCount
@@ -1535,9 +1537,16 @@ public:
         TitleBarArea    // For move
     };
 
+#if defined(Q_COMPILER_CLASS_ENUM) && defined(Q_COMPILER_CONSTEXPR)
+    enum class Initialization {
+        Uninitialized
+    };
+    static constexpr Q_DECL_UNUSED Initialization Uninitialized = Initialization::Uninitialized;
+#else
     enum Initialization {
         Uninitialized
     };
+#endif
 
     enum CoordinateSystem {
         DeviceCoordinates,
@@ -1625,7 +1634,8 @@ public:
     enum MouseEventSource {
         MouseEventNotSynthesized,
         MouseEventSynthesizedBySystem,
-        MouseEventSynthesizedByQt
+        MouseEventSynthesizedByQt,
+        MouseEventSynthesizedByApplication
     };
 
     enum MouseEventFlag {

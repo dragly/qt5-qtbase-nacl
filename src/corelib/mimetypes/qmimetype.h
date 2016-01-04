@@ -1,6 +1,7 @@
 /****************************************************************************
 **
 ** Copyright (C) 2015 The Qt Company Ltd.
+** Copyright (C) 2015 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author David Faure <david.faure@kdab.com>
 ** Contact: http://www.qt.io/licensing/
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -44,7 +45,6 @@
 QT_BEGIN_NAMESPACE
 
 class QMimeTypePrivate;
-class QFileinfo;
 class QStringList;
 class QMimeType;
 
@@ -57,13 +57,9 @@ public:
     QMimeType(const QMimeType &other);
     QMimeType &operator=(const QMimeType &other);
 #ifdef Q_COMPILER_RVALUE_REFS
-    QMimeType &operator=(QMimeType &&other)
-    {
-        qSwap(d, other.d);
-        return *this;
-    }
+    QMimeType &operator=(QMimeType &&other) Q_DECL_NOTHROW { swap(other); return *this; }
 #endif
-    void swap(QMimeType &other)
+    void swap(QMimeType &other) Q_DECL_NOTHROW
     {
         qSwap(d, other.d);
     }

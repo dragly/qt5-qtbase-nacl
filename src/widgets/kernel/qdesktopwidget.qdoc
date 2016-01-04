@@ -149,7 +149,7 @@
      Returns the available geometry of the screen with index \a screen. What
      is available will be subrect of screenGeometry() based on what the
      platform decides is available (for example excludes the dock and menu bar
-     on Mac OS X, or the task bar on Windows). The default screen is used if
+     on OS X, or the task bar on Windows). The default screen is used if
      \a screen is -1.
 
      \sa screenNumber(), screenGeometry()
@@ -270,4 +270,18 @@
     This signal is emitted when the number of screens changes to \a newCount.
 
     \sa screenCount
+*/
+
+
+/*!
+    \fn void QDesktopWidget::primaryScreenChanged()
+
+    \since 5.6
+
+    \brief This signal is emitted whenever the primary screen changes.
+
+    \note This doesn't mean the QDesktopWidget::primaryScreen index will
+    necessarily be different, but now it will refer to the new primary screen.
+
+    \sa primaryScreen, screenGeometry()
 */

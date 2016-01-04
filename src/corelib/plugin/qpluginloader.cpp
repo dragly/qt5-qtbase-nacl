@@ -286,9 +286,9 @@ static QString locatePlugin(const QString& fileName)
     suffixes.prepend(QString());
 
     // Split up "subdir/filename"
-    const int slash = fileName.lastIndexOf('/');
-    const QString baseName = fileName.mid(slash + 1);
-    const QString basePath = isAbsolute ? QString() : fileName.left(slash + 1); // keep the '/'
+    const int slash = fileName.lastIndexOf(QLatin1Char('/'));
+    const QStringRef baseName = fileName.midRef(slash + 1);
+    const QStringRef basePath = isAbsolute ? QStringRef() : fileName.leftRef(slash + 1); // keep the '/'
 
     const bool debug = qt_debug_component();
 
@@ -435,7 +435,9 @@ QObjectList QPluginLoader::staticInstances()
     QObjectList instances;
     const StaticPluginList *plugins = staticPluginList();
     if (plugins) {
-        for (int i = 0; i < plugins->size(); ++i)
+        const int numPlugins = plugins->size();
+        instances.reserve(numPlugins);
+        for (int i = 0; i < numPlugins; ++i)
             instances += plugins->at(i).instance();
     }
     return instances;

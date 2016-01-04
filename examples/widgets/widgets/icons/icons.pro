@@ -10,6 +10,8 @@ SOURCES       = iconpreviewarea.cpp \
                 main.cpp \
                 mainwindow.cpp
 
+DEFINES += SRCDIR=\\\"$$PWD/\\\"
+
 EXAMPLE_FILES = images/*
 
 # install
@@ -17,7 +19,7 @@ target.path = $$[QT_INSTALL_EXAMPLES]/widgets/widgets/icons
 INSTALLS += target
 
 
-wince*: {
+wince {
     imageFiles.files = images/*
     wincewm*: {
         imageFiles.path = "/My Documents/My Pictures"

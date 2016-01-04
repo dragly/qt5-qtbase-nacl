@@ -1262,7 +1262,7 @@ void QListWidgetPrivate::_q_dataChanged(const QModelIndex &topLeft,
     activated when the user clicks or double clicks on it, depending on the
     system configuration. It is also activated when the user presses the
     activation key (on Windows and X11 this is the \uicontrol Return key, on Mac OS
-    X it is \uicontrol{Ctrl+0}).
+    X it is \uicontrol{Command+O}).
 */
 
 /*!
@@ -1699,7 +1699,9 @@ QList<QListWidgetItem*> QListWidget::selectedItems() const
     Q_D(const QListWidget);
     QModelIndexList indexes = selectionModel()->selectedIndexes();
     QList<QListWidgetItem*> items;
-    for (int i = 0; i < indexes.count(); ++i)
+    const int numIndexes = indexes.count();
+    items.reserve(numIndexes);
+    for (int i = 0; i < numIndexes; ++i)
         items.append(d->listModel()->at(indexes.at(i).row()));
     return items;
 }

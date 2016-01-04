@@ -303,7 +303,7 @@ struct DefinedTypesFilter {
     \omitvalue WeakPointerToQObject
     \omitvalue TrackingPointerToQObject
     \omitvalue WasDeclaredAsMetaType
-    \value IsGadget This type is a Q_GADGET and it's corresponding QMetaObject can be accessed with QMetaType::metaObject Since 5.5.
+    \omitvalue IsGadget This type is a Q_GADGET and it's corresponding QMetaObject can be accessed with QMetaType::metaObject Since 5.5.
 */
 
 /*!
@@ -420,6 +420,16 @@ struct DefinedTypesFilter {
     \sa QMetaType::create()
 */
 
+/*!
+    \fn void *QMetaType::construct(int type, const void *copy)
+    \deprecated
+
+    Constructs a value of the given type which is a copy of \a copy.
+    The default value for \a copy is 0.
+
+    Deprecated, use the static function QMetaType::create(int type,
+    const void *copy) instead.
+*/
 /*!
     \fn void *QMetaType::construct(void *where, const void *copy = 0) const
     \since 5.0
@@ -1046,6 +1056,16 @@ int QMetaType::registerNormalizedType(const NS(QByteArray) &normalizedTypeName,
         if (idx >= User) {
             previousSize = ct->at(idx - User).size;
             previousFlags = ct->at(idx - User).flags;
+
+            // Set new/additional flags in case of old library/app.
+            // Ensures that older code works in conjunction with new Qt releases
+            // requiring the new flags.
+            if (flags != previousFlags) {
+                QCustomTypeInfo &inf = ct->data()[idx - User];
+                inf.flags |= flags;
+                if (metaObject)
+                    inf.metaObject = metaObject;
+            }
         }
     }
 
@@ -1061,25 +1081,16 @@ int QMetaType::registerNormalizedType(const NS(QByteArray) &normalizedTypeName,
             normalizedTypeName.constData(), idx, previousSize, size);
     }
 
-    // Ignore WasDeclaredAsMetaType inconsitency, to many users were hitting the problem
-    previousFlags |= WasDeclaredAsMetaType;
-    flags |= WasDeclaredAsMetaType;
+    // these flags cannot change in a binary compatible way:
+    const int binaryCompatibilityFlag = PointerToQObject | IsEnumeration | SharedPointerToQObject
+                                                | WeakPointerToQObject | TrackingPointerToQObject;
+    if ((previousFlags ^ flags) & binaryCompatibilityFlag) {
 
-    if (previousFlags != flags) {
-        const int maskForTypeInfo = NeedsConstruction | NeedsDestruction | MovableType;
         const char *msg = "QMetaType::registerType: Binary compatibility break. "
                 "\nType flags for type '%s' [%i] don't match. Previously "
-                "registered TypeFlags(0x%x), now registering TypeFlags(0x%x). "
-                "This is an ODR break, which means that your application depends on a C++ undefined behavior."
-                "\nHint: %s";
-        QT_PREPEND_NAMESPACE(QByteArray) hint;
-        if ((previousFlags & maskForTypeInfo) != (flags & maskForTypeInfo)) {
-            hint += "\nIt seems that the type was registered at least twice in a different translation units, "
-                    "but Q_DECLARE_TYPEINFO is not visible from all the translations unit or different flags were used."
-                    "Remember that Q_DECLARE_TYPEINFO should be declared before QMetaType registration, "
-                    "preferably it should be placed just after the type declaration and before Q_DECLARE_METATYPE";
-        }
-        qFatal(msg, normalizedTypeName.constData(), idx, previousFlags, int(flags), hint.constData());
+                "registered TypeFlags(0x%x), now registering TypeFlags(0x%x). ";
+
+        qFatal(msg, normalizedTypeName.constData(), idx, previousFlags, int(flags));
     }
 
     return idx;
@@ -1168,12 +1179,6 @@ bool QMetaType::isRegistered(int type)
     return ((type >= User) && (ct && ct->count() > type - User) && !ct->at(type - User).typeName.isEmpty());
 }
 
-/*!
-    \fn int qMetaTypeTypeImpl(const char *typeName, int length)
-    \internal
-
-    Implementation of QMetaType::type().
-*/
 template <bool tryNormalizedType>
 static inline int qMetaTypeTypeImpl(const char *typeName, int length)
 {
@@ -1830,7 +1835,8 @@ public:
     void delegate(const T *where) { DestructorImpl<T>::Destruct(m_type, const_cast<T*>(where)); }
     void delegate(const void *) {}
     void delegate(const QMetaTypeSwitcher::UnknownType*) {}
-    void delegate(const QMetaTypeSwitcher::NotBuiltinType *where) { customTypeDestructor(m_type, (void*)where); }
+    void delegate(const QMetaTypeSwitcher::NotBuiltinType *where)
+    { customTypeDestructor(m_type, const_cast<void *>(static_cast<const void *>(where))); }
 
 private:
     static void customTypeDestructor(const int type, void *where)
@@ -2092,7 +2098,7 @@ const QMetaObject *QMetaType::metaObjectForType(int type)
     \warning This function is useful only for registering an alias (typedef)
     for every other use case Q_DECLARE_METATYPE and qMetaTypeId() should be used instead.
 
-    \sa qRegisterMetaTypeStreamOperators(), QMetaType::isRegistered(),
+    \sa {QMetaType::}{qRegisterMetaTypeStreamOperators()}, {QMetaType::}{isRegistered()},
         Q_DECLARE_METATYPE()
 */
 

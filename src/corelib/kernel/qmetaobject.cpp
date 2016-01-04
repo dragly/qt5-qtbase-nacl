@@ -1,7 +1,7 @@
 /****************************************************************************
 **
 ** Copyright (C) 2015 The Qt Company Ltd.
-** Copyright (C) 2014 Olivier Goffart <ogoffart@woboq.com>
+** Copyright (C) 2015 Olivier Goffart <ogoffart@woboq.com>
 ** Contact: http://www.qt.io/licensing/
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -1533,6 +1533,30 @@ bool QMetaObject::invokeMethod(QObject *obj,
 */
 
 /*!
+    \fn QMetaObject::Connection::Connection(const Connection &other)
+
+    Constructs a copy of \a other.
+*/
+
+/*!
+    \fn QMetaObject::Connection::Connection &operator=(const Connection &other)
+
+    Assigns \a other to this connection and returns a reference to this connection.
+*/
+
+/*!
+    \fn QMetaObject::Connection &QMetaObject::Connection::operator=(Connection &&other)
+
+    Move-assigns \a other to this object, and returns a reference.
+*/
+/*!
+    \fn QMetaObject::Connection::Connection(Connection &&o)
+
+    Move-constructs a Connection instance, making it point to the same object
+    that \a o was pointing to.
+*/
+
+/*!
     \class QMetaMethod
     \inmodule QtCore
 
@@ -1879,13 +1903,14 @@ const char *QMetaMethod::typeName() const
     way in the function declaration:
 
     \code
+        // In the class MainWindow declaration
         #ifndef Q_MOC_RUN
-        // define the tag text
-        #  define THISISTESTTAG
+        // define the tag text as empty, so the compiler doesn't see it
+        #  define MY_CUSTOM_TAG
         #endif
         ...
         private slots:
-            THISISTESTTAG void testFunc();
+            MY_CUSTOM_TAG void testFunc();
     \endcode
 
     and the information can be accessed by using:
@@ -1895,12 +1920,14 @@ const char *QMetaMethod::typeName() const
         win.show();
 
         int functionIndex = win.metaObject()->indexOfSlot("testFunc()");
-        QMetaMethod mm = metaObject()->method(functionIndex);
-        qDebug() << mm.tag(); // prints THISISTESTTAG
+        QMetaMethod mm = win.metaObject()->method(functionIndex);
+        qDebug() << mm.tag(); // prints MY_CUSTOM_TAG
     \endcode
 
     For the moment, \c moc will extract and record all tags, but it will not
-    handle any of them specially.
+    handle any of them specially. You can use the tags to annotate your methods
+    differently, and treat them according to the specific needs of your
+    application.
 
     \note Since Qt 5.0, \c moc expands preprocessor macros, so it is necessary
     to surround the definition with \c #ifndef \c Q_MOC_RUN, as shown in the
@@ -1960,8 +1987,9 @@ int QMetaMethod::revision() const
     Returns the access specification of this method (private,
     protected, or public).
 
-    Signals are always protected, meaning that you can only emit them
-    from the class or from a subclass.
+    \note Signals are always public, but you should regard that as an
+    implementation detail. It is almost always a bad idea to emit a signal from
+    outside its class.
 
     \sa methodType()
 */
@@ -3000,6 +3028,11 @@ QVariant QMetaProperty::read(const QObject *object) const
     Writes \a value as the property's value to the given \a object. Returns
     true if the write succeeded; otherwise returns \c false.
 
+    If \a value is not of the same type type as the property, a conversion
+    is attempted. An empty QVariant() is equivalent to a call to reset()
+    if this property is resetable, or setting a default-constructed object
+    otherwise.
+
     \sa read(), reset(), isWritable()
 */
 bool QMetaProperty::write(QObject *object, const QVariant &value) const
@@ -3040,8 +3073,15 @@ bool QMetaProperty::write(QObject *object, const QVariant &value) const
             if (t == QMetaType::UnknownType)
                 return false;
         }
-        if (t != QMetaType::QVariant && t != (uint)value.userType() && (t < QMetaType::User && !v.convert((QVariant::Type)t)))
-            return false;
+        if (t != QMetaType::QVariant && int(t) != value.userType()) {
+            if (!value.isValid()) {
+                if (isResettable())
+                    return reset(object);
+                v = QVariant(t, 0);
+            } else if (!v.convert(t)) {
+                return false;
+            }
+        }
     }
 
     // the status variable is changed by qt_metacall to indicate what it did

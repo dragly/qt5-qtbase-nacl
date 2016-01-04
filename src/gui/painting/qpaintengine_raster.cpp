@@ -2752,12 +2752,12 @@ bool QRasterPaintEngine::drawCachedGlyphs(int numGlyphs, const glyph_t *glyphs,
             QFixed spp = fontEngine->subPixelPositionForX(positions[i].x);
 
             QPoint offset;
-            QImage *alphaMap = fontEngine->lockedAlphaMapForGlyph(glyphs[i], spp, neededFormat, s->matrix,
-                                                                  &offset);
+            const QImage *alphaMap = fontEngine->lockedAlphaMapForGlyph(glyphs[i], spp, neededFormat, s->matrix,
+                                                                        &offset);
             if (alphaMap == 0 || alphaMap->isNull())
                 continue;
 
-            alphaPenBlt(alphaMap->bits(), alphaMap->bytesPerLine(), alphaMap->depth(),
+            alphaPenBlt(alphaMap->constBits(), alphaMap->bytesPerLine(), alphaMap->depth(),
                         qFloor(positions[i].x) + offset.x(),
                         qRound(positions[i].y) + offset.y(),
                         alphaMap->width(), alphaMap->height());
@@ -3277,6 +3277,10 @@ bool QRasterPaintEngine::requiresPretransformedGlyphPositions(QFontEngine *fontE
     return QPaintEngineEx::requiresPretransformedGlyphPositions(fontEngine, m);
 }
 
+/*!
+   Indicates whether glyph caching is supported by the font engine
+   \a fontEngine with the given transform \a m applied.
+*/
 bool QRasterPaintEngine::shouldDrawCachedGlyphs(QFontEngine *fontEngine, const QTransform &m) const
 {
     // The raster engine does not support projected cached glyph drawing
@@ -3649,8 +3653,9 @@ QImage::Format QRasterBuffer::prepare(QImage *image)
     drawHelper = qDrawHelper + format;
     if (image->depth() == 1 && image->colorTable().size() == 2) {
         monoDestinationWithClut = true;
-        destColor0 = qPremultiply(image->colorTable()[0]);
-        destColor1 = qPremultiply(image->colorTable()[1]);
+        const QVector<QRgb> colorTable = image->colorTable();
+        destColor0 = qPremultiply(colorTable[0]);
+        destColor1 = qPremultiply(colorTable[1]);
     }
 
     return format;
@@ -4132,7 +4137,7 @@ class QGradientCache
     struct CacheInfo
     {
         inline CacheInfo(QGradientStops s, int op, QGradient::InterpolationMode mode) :
-            stops(s), opacity(op), interpolationMode(mode) {}
+            stops(qMove(s)), opacity(op), interpolationMode(mode) {}
         QRgba64 buffer[GRADIENT_STOPTABLE_SIZE];
         QGradientStops stops;
         int opacity;

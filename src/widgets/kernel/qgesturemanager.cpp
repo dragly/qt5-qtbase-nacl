@@ -66,7 +66,7 @@ static inline int panTouchPoints()
     static const char panTouchPointVariable[] = "QT_PAN_TOUCHPOINTS";
     if (qEnvironmentVariableIsSet(panTouchPointVariable)) {
         bool ok;
-        const int result = qgetenv(panTouchPointVariable).toInt(&ok);
+        const int result = qEnvironmentVariableIntValue(panTouchPointVariable, &ok);
         if (ok && result >= 1)
             return result;
         qWarning() << "Ignoring invalid value of " << panTouchPointVariable;
@@ -405,6 +405,8 @@ void QGestureManager::cancelGesturesForChildren(QGesture *original)
     Q_ASSERT(original);
     QWidget *originatingWidget = m_gestureTargets.value(original);
     Q_ASSERT(originatingWidget);
+    if (!originatingWidget)
+        return;
 
     // iterate over all active gestures and all maybe gestures
     // for each find the owner
@@ -565,22 +567,24 @@ void QGestureManager::getGestureTargets(const QSet<QGesture*> &gestures,
     foreach (QGesture *gesture, gestures) {
         QWidget *receiver = m_gestureTargets.value(gesture, 0);
         Q_ASSERT(receiver);
-        gestureByTypes[gesture->gestureType()].insert(receiver, gesture);
+        if (receiver)
+            gestureByTypes[gesture->gestureType()].insert(receiver, gesture);
     }
 
     // for each gesture type
-    foreach (Qt::GestureType type, gestureByTypes.keys()) {
-        QHash<QWidget *, QGesture *> gestures = gestureByTypes.value(type);
-        foreach (QWidget *widget, gestures.keys()) {
+    for (GestureByTypes::const_iterator git = gestureByTypes.cbegin(), gend = gestureByTypes.cend(); git != gend; ++git) {
+        const QHash<QWidget *, QGesture *> &gestures = git.value();
+        for (QHash<QWidget *, QGesture *>::const_iterator wit = gestures.cbegin(), wend = gestures.cend(); wit != wend; ++wit) {
+            QWidget *widget = wit.key();
             QWidget *w = widget->parentWidget();
             while (w) {
                 QMap<Qt::GestureType, Qt::GestureFlags>::const_iterator it
-                        = w->d_func()->gestureContext.constFind(type);
+                        = w->d_func()->gestureContext.constFind(git.key());
                 if (it != w->d_func()->gestureContext.constEnd()) {
                     // i.e. 'w' listens to gesture 'type'
                     if (!(it.value() & Qt::DontStartGestureOnChildren) && w != widget) {
                         // conflicting gesture!
-                        (*conflicts)[widget].append(gestures[widget]);
+                        (*conflicts)[widget].append(wit.value());
                         break;
                     }
                 }
@@ -591,7 +595,7 @@ void QGestureManager::getGestureTargets(const QSet<QGesture*> &gestures,
                 w = w->parentWidget();
             }
             if (!w)
-                (*normal)[widget].append(gestures[widget]);
+                (*normal)[widget].append(wit.value());
         }
     }
 }

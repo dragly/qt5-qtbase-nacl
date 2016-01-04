@@ -4,9 +4,6 @@ TARGET = QtBootstrap
 QT =
 CONFIG += internal_module force_bootstrap
 
-# otherwise mingw headers do not declare common functions like putenv
-mingw:QMAKE_CXXFLAGS_CXX11 = -std=gnu++0x
-
 MODULE_DEFINES = \
         QT_BOOTSTRAPPED \
         QT_LITE_UNICODE \
@@ -42,12 +39,12 @@ MODULE_PRIVATE_INCLUDES = \
 # We need the forwarding headers before their respective modules are built,
 # so do a minimal syncqt run.
 CONFIG += minimal_syncqt
-QMAKE_SYNCQT_OPTIONS = -module QtCore -module QtDBus -module QtXml
-contains(QT_CONFIG, zlib): \
-    QMAKE_SYNCQT_OPTIONS += -module QtZlib
-QMAKE_SYNCQT_OPTIONS += -version $$QT_VERSION
+QMAKE_SYNCQT_OPTIONS = -module QtCore -module QtDBus -module QtXml -version $$QT_VERSION
 
 load(qt_module)
+
+# otherwise mingw headers do not declare common functions like putenv
+mingw: CONFIG -= strict_c++
 
 SOURCES += \
            ../../corelib/codecs/qlatincodec.cpp \
@@ -104,6 +101,7 @@ SOURCES += \
            ../../corelib/tools/qsize.cpp \
            ../../corelib/tools/qline.cpp \
            ../../corelib/tools/qstring.cpp \
+           ../../corelib/tools/qstringbuilder.cpp \
            ../../corelib/tools/qstring_compat.cpp \
            ../../corelib/tools/qstringlist.cpp \
            ../../corelib/tools/qvector.cpp \

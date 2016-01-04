@@ -212,7 +212,7 @@ void tst_QWindowContainer::testActivation()
     // Under KDE (ubuntu 12.10), we experience that doing two activateWindow in a row
     // does not work. The second gets ignored by the window manager, even though the
     // timestamp in the xcb connection is unique for both.
-    if (QGuiApplication::platformName() == "xcb")
+    if (!QGuiApplication::platformName().compare(QLatin1String("xcb"), Qt::CaseInsensitive))
         QTest::qWait(100);
 
     window->requestActivate();
@@ -327,7 +327,7 @@ void tst_QWindowContainer::testDockWidget()
 
     QTest::qWait(1000);
     dock->setFloating(false);
-    QTRY_VERIFY(window->parent() == mainWindow.window()->windowHandle());
+    QTRY_COMPARE(window->parent(), mainWindow.window()->windowHandle());
 }
 
 QTEST_MAIN(tst_QWindowContainer)

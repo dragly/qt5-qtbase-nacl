@@ -2450,7 +2450,7 @@ void QHeaderView::mouseMoveEvent(QMouseEvent *e)
         case QHeaderViewPrivate::SelectSections: {
             int logical = logicalIndexAt(qMax(-d->offset, pos));
             if (logical == -1 && pos > 0)
-                logical = d->lastVisibleVisualIndex();
+                logical = logicalIndex(d->lastVisibleVisualIndex());
             if (logical == d->pressed)
                 return; // nothing to do
             else if (d->pressed != -1)
@@ -2608,10 +2608,12 @@ bool QHeaderView::viewportEvent(QEvent *e)
         }
         return true; }
 #endif // QT_NO_STATUSTIP
-    case QEvent::Hide:
-    case QEvent::Show:
     case QEvent::FontChange:
-    case QEvent::StyleChange:{
+    case QEvent::StyleChange:
+        d->invalidateCachedSizeHint();
+        // Fall through
+    case QEvent::Hide:
+    case QEvent::Show: {
         QAbstractScrollArea *parent = qobject_cast<QAbstractScrollArea *>(parentWidget());
         if (parent && parent->isVisible()) // Only resize if we have a visible parent
             resizeSections();

@@ -111,12 +111,10 @@ bool convert_generic_inplace(QImageData *data, QImage::Format dst_format, Qt::Im
 
 void dither_to_Mono(QImageData *dst, const QImageData *src, Qt::ImageConversionFlags flags, bool fromalpha);
 
-void qInitImageConversions();
-
 const uchar *qt_get_bitflip_array();
 Q_GUI_EXPORT void qGamma_correct_back_to_linear_cs(QImage *image);
 
-#if defined(Q_OS_WINRT) && defined(_M_ARM) // QTBUG-42038
+#if defined(_M_ARM) // QTBUG-42038
 #pragma optimize("", off)
 #endif
 inline int qt_depthForFormat(QImage::Format format)
@@ -163,7 +161,7 @@ inline int qt_depthForFormat(QImage::Format format)
     }
     return depth;
 }
-#if defined(Q_OS_WINRT) && defined(_M_ARM)
+#if defined(_M_ARM)
 #pragma optimize("", on)
 #endif
 

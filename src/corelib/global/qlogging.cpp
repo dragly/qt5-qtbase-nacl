@@ -65,6 +65,9 @@
 # include <systemd/sd-journal.h>
 # include <syslog.h>
 #endif
+#if defined(QT_USE_SYSLOG) && !defined(QT_BOOTSTRAPPED)
+# include <syslog.h>
+#endif
 #ifdef Q_OS_UNIX
 # include <sys/types.h>
 # include <sys/stat.h>
@@ -85,6 +88,10 @@
 #  elif (defined(__GLIBC__) && defined(__GLIBCXX__)) || (__has_include(<cxxabi.h>) && __has_include(<execinfo.h>))
 #    define QLOGGING_HAVE_BACKTRACE
 #  endif
+#endif
+
+#if defined(QT_USE_SLOG2)
+extern char *__progname;
 #endif
 
 #if defined(Q_OS_LINUX) && (defined(__GLIBC__) || __has_include(<sys/syscall.h>))
@@ -1175,8 +1182,6 @@ void QMessagePattern::setPattern(const QString &pattern)
 #define QT_LOG_CODE 9000
 #endif
 
-extern char *__progname;
-
 static void slog2_default_handler(QtMsgType msgType, const char *message)
 {
     if (slog2_set_default_buffer((slog2_buffer_t)-1) == 0) {
@@ -1359,8 +1364,9 @@ QString qFormatLogMessage(QtMsgType type, const QMessageLogContext &context, con
             } else if (pattern->timeFormat == QLatin1String("boot")) {
                 // just print the milliseconds since the elapsed timer reference
                 // like the Linux kernel does
-                pattern->timer.elapsed();
-                uint ms = pattern->timer.msecsSinceReference();
+                QElapsedTimer now;
+                now.start();
+                uint ms = now.msecsSinceReference();
                 message.append(QString::asprintf("%6d.%03d", uint(ms / 1000), uint(ms % 1000)));
             } else if (pattern->timeFormat.isEmpty()) {
                 message.append(QDateTime::currentDateTime().toString(Qt::ISODate));
@@ -1435,6 +1441,32 @@ static void systemd_default_message_handler(QtMsgType type,
 }
 #endif
 
+#ifdef QT_USE_SYSLOG
+static void syslog_default_message_handler(QtMsgType type, const char *message)
+{
+    int priority = LOG_INFO; // Informational
+    switch (type) {
+    case QtDebugMsg:
+        priority = LOG_DEBUG; // Debug-level messages
+        break;
+    case QtInfoMsg:
+        priority = LOG_INFO; // Informational conditions
+        break;
+    case QtWarningMsg:
+        priority = LOG_WARNING; // Warning conditions
+        break;
+    case QtCriticalMsg:
+        priority = LOG_CRIT; // Critical conditions
+        break;
+    case QtFatalMsg:
+        priority = LOG_ALERT; // Action must be taken immediately
+        break;
+    }
+
+    syslog(priority, "%s", message);
+}
+#endif
+
 #ifdef Q_OS_ANDROID
 static void android_default_message_handler(QtMsgType type,
                                   const QMessageLogContext &context,
@@ -1479,6 +1511,9 @@ static void qDefaultMessageHandler(QtMsgType type, const QMessageLogContext &con
         return;
 #elif defined(QT_USE_JOURNALD) && !defined(QT_BOOTSTRAPPED)
         systemd_default_message_handler(type, context, logMessage);
+        return;
+#elif defined(QT_USE_SYSLOG) && !defined(QT_BOOTSTRAPPED)
+        syslog_default_message_handler(type, logMessage.toUtf8().constData());
         return;
 #elif defined(Q_OS_ANDROID)
         android_default_message_handler(type, context, logMessage);

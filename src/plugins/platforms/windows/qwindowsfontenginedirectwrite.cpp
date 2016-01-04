@@ -196,8 +196,8 @@ namespace {
 */
 
 QWindowsFontEngineDirectWrite::QWindowsFontEngineDirectWrite(IDWriteFontFace *directWriteFontFace,
-                                               qreal pixelSize,
-                                               const QSharedPointer<QWindowsFontEngineData> &d)
+                                                             qreal pixelSize,
+                                                             const QSharedPointer<QWindowsFontEngineData> &d)
     : QFontEngine(DirectWrite)
     , m_fontEngineData(d)
     , m_directWriteFontFace(directWriteFontFace)
@@ -485,9 +485,9 @@ qreal QWindowsFontEngineDirectWrite::maxCharWidth() const
     return 0;
 }
 
-QImage QWindowsFontEngineDirectWrite::alphaMapForGlyph(glyph_t glyph, QFixed subPixelPosition)
+QImage QWindowsFontEngineDirectWrite::alphaMapForGlyph(glyph_t glyph, QFixed subPixelPosition, const QTransform &t)
 {
-    QImage im = imageForGlyph(glyph, subPixelPosition, 0, QTransform());
+    QImage im = alphaRGBMapForGlyph(glyph, subPixelPosition, t);
 
     QImage alphaMap(im.width(), im.height(), QImage::Format_Alpha8);
 
@@ -502,6 +502,11 @@ QImage QWindowsFontEngineDirectWrite::alphaMapForGlyph(glyph_t glyph, QFixed sub
     }
 
     return alphaMap;
+}
+
+QImage QWindowsFontEngineDirectWrite::alphaMapForGlyph(glyph_t glyph, QFixed subPixelPosition)
+{
+    return alphaMapForGlyph(glyph, subPixelPosition, QTransform());
 }
 
 bool QWindowsFontEngineDirectWrite::supportsSubPixelPositions() const
@@ -547,12 +552,17 @@ QImage QWindowsFontEngineDirectWrite::imageForGlyph(glyph_t t,
     transform.m21 = xform.m21();
     transform.m22 = xform.m22();
 
+    DWRITE_RENDERING_MODE renderMode =
+             fontDef.hintingPreference == QFont::PreferNoHinting
+                ? DWRITE_RENDERING_MODE_CLEARTYPE_NATURAL_SYMMETRIC
+                : DWRITE_RENDERING_MODE_CLEARTYPE_NATURAL;
+
     IDWriteGlyphRunAnalysis *glyphAnalysis = NULL;
     HRESULT hr = m_fontEngineData->directWriteFactory->CreateGlyphRunAnalysis(
                 &glyphRun,
                 1.0f,
                 &transform,
-                DWRITE_RENDERING_MODE_CLEARTYPE_NATURAL_SYMMETRIC,
+                renderMode,
                 DWRITE_MEASURING_MODE_NATURAL,
                 0.0, 0.0,
                 &glyphAnalysis
@@ -626,7 +636,8 @@ QImage QWindowsFontEngineDirectWrite::alphaRGBMapForGlyph(glyph_t t,
 QFontEngine *QWindowsFontEngineDirectWrite::cloneWithSize(qreal pixelSize) const
 {
     QFontEngine *fontEngine = new QWindowsFontEngineDirectWrite(m_directWriteFontFace,
-                                                                pixelSize, m_fontEngineData);
+                                                                pixelSize,
+                                                                m_fontEngineData);
 
     fontEngine->fontDef = fontDef;
     fontEngine->fontDef.pixelSize = pixelSize;
@@ -703,9 +714,9 @@ QString QWindowsFontEngineDirectWrite::fontNameSubstitute(const QString &familyN
 glyph_metrics_t QWindowsFontEngineDirectWrite::alphaMapBoundingBox(glyph_t glyph, QFixed pos, const QTransform &matrix, GlyphFormat format)
 {
     Q_UNUSED(pos);
-    int margin = 0;
-    if (format == QFontEngine::Format_A32 || format == QFontEngine::Format_ARGB)
-        margin = glyphMargin(QFontEngine::Format_A32);
+    Q_UNUSED(format);
+
+    int margin = glyphMargin(QFontEngine::Format_A32);
     glyph_metrics_t gm = QFontEngine::boundingBox(glyph, matrix);
     gm.width += margin * 2;
     gm.height += margin * 2;

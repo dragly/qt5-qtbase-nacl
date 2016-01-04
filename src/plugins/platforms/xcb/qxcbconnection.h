@@ -194,6 +194,7 @@ namespace QXcbAtom {
         _KDE_NET_WM_WINDOW_TYPE_OVERRIDE,
 
         _KDE_NET_WM_FRAME_STRUT,
+        _NET_FRAME_EXTENTS,
 
         _NET_STARTUP_INFO,
         _NET_STARTUP_INFO_BEGIN,
@@ -285,6 +286,7 @@ namespace QXcbAtom {
         _COMPIZ_DECOR_PENDING,
         _COMPIZ_DECOR_REQUEST,
         _COMPIZ_DECOR_DELETE_PIXMAP,
+        _COMPIZ_TOOLKIT_ACTION,
 
         NPredefinedAtoms,
 
@@ -323,9 +325,6 @@ private:
     QMutex m_mutex;
     QXcbEventArray m_events;
     QXcbConnection *m_connection;
-
-    typedef xcb_generic_event_t * (*XcbPollForQueuedEventFunctionPointer)(xcb_connection_t *c);
-    XcbPollForQueuedEventFunctionPointer m_xcb_poll_for_queued_event;
 };
 
 class QXcbWindowEventListener
@@ -377,8 +376,10 @@ public:
 
     QXcbConnection *connection() const { return const_cast<QXcbConnection *>(this); }
 
+    const QList<QXcbVirtualDesktop *> &virtualDesktops() const { return m_virtualDesktops; }
     const QList<QXcbScreen *> &screens() const { return m_screens; }
     int primaryScreenNumber() const { return m_primaryScreenNumber; }
+    QXcbVirtualDesktop *primaryVirtualDesktop() const { return m_virtualDesktops.value(m_primaryScreenNumber); }
     QXcbScreen *primaryScreen() const;
 
     inline xcb_atom_t atom(QXcbAtom::Atom atom) const { return m_allAtoms[atom]; }
@@ -402,6 +403,7 @@ public:
 
     QXcbWMSupport *wmSupport() const { return m_wmSupport.data(); }
     xcb_window_t rootWindow();
+    xcb_window_t clientLeader();
 
     bool hasDefaultVisualId() const { return m_defaultVisualId != UINT_MAX; }
     xcb_visualid_t defaultVisualId() const { return m_defaultVisualId; }
@@ -458,6 +460,8 @@ public:
     bool threadedEventHandling() const { return m_reader->isRunning(); }
 
     xcb_timestamp_t getTimestamp();
+    xcb_window_t getSelectionOwner(xcb_atom_t atom) const;
+    xcb_window_t getQtSelectionOwner();
 
     void setButton(Qt::MouseButton button, bool down) { if (down) m_buttons |= button; else m_buttons &= ~button; }
     Qt::MouseButtons buttons() const { return m_buttons; }
@@ -511,18 +515,22 @@ private:
     void initializeXFixes();
     void initializeXRender();
     void initializeXRandr();
+    void initializeXinerama();
     void initializeXShape();
     void initializeXKB();
     void handleClientMessageEvent(const xcb_client_message_event_t *event);
-    QXcbScreen* createScreen(QXcbVirtualDesktop *virtualDesktop,
-                             xcb_randr_output_t outputId = XCB_NONE,
-                             xcb_randr_get_output_info_reply_t *output = 0);
     QXcbScreen* findScreenForCrtc(xcb_window_t rootWindow, xcb_randr_crtc_t crtc);
     QXcbScreen* findScreenForOutput(xcb_window_t rootWindow, xcb_randr_output_t output);
     QXcbVirtualDesktop* virtualDesktopForRootWindow(xcb_window_t rootWindow);
-    bool checkOutputIsPrimary(xcb_window_t rootWindow, xcb_randr_output_t output);
-    void initializeScreens();
     void updateScreens(const xcb_randr_notify_event_t *event);
+    bool checkOutputIsPrimary(xcb_window_t rootWindow, xcb_randr_output_t output);
+    void updateScreen(QXcbScreen *screen, const xcb_randr_output_change_t &outputChange);
+    QXcbScreen *createScreen(QXcbVirtualDesktop *virtualDesktop,
+                             const xcb_randr_output_change_t &outputChange,
+                             xcb_randr_get_output_info_reply_t *outputInfo);
+    void destroyScreen(QXcbScreen *screen);
+    void initializeScreens();
+    bool compressEvent(xcb_generic_event_t *event, int currentIndex, QXcbEventArray *eventqueue) const;
 
     bool m_xi2Enabled;
     int m_xi2Minor;
@@ -575,7 +583,7 @@ private:
     QHash<int, ScrollingDevice> m_scrollingDevices;
 
     static bool xi2GetValuatorValueIfSet(void *event, int valuatorNum, double *value);
-    static bool xi2PrepareXIGenericDeviceEvent(xcb_ge_event_t *event, int opCode);
+    static void xi2PrepareXIGenericDeviceEvent(xcb_ge_event_t *event);
 #endif
 
     xcb_connection_t *m_connection;
@@ -609,7 +617,6 @@ private:
 #endif
     QXcbEventReader *m_reader;
 #if defined(XCB_USE_XINPUT2)
-    QHash<int, QWindowSystemInterface::TouchPoint> m_touchPoints;
     QHash<int, XInput2TouchDeviceData*> m_touchDevices;
 #endif
 #ifdef Q_XCB_DEBUG
@@ -633,6 +640,7 @@ private:
     uint32_t xrandr_first_event;
     uint32_t xkb_first_event;
 
+    bool has_xinerama_extension;
     bool has_shape_extension;
     bool has_randr_extension;
     bool has_input_shape;
@@ -642,10 +650,13 @@ private:
 
     QXcbWindow *m_focusWindow;
 
+    xcb_window_t m_clientLeader;
     QByteArray m_startupId;
     QXcbSystemTrayTracker *m_systemTrayTracker;
     QXcbGlIntegration *m_glIntegration;
     bool m_xiGrab;
+
+    xcb_window_t m_qtSelectionOwner;
 
     friend class QXcbEventReader;
 };

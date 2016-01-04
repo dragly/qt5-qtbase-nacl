@@ -922,6 +922,8 @@ bool VCCLCompilerTool::parseOption(const char* option)
                     TreatWChar_tAsBuiltInType = ((*c) == '-' ? _False : _True);
                 else if (config->CompilerVersion >= NET2013 && strncmp(option + 4, "strictStrings", 13) == 0)
                     AdditionalOptions += option;
+                else if (config->CompilerVersion >= NET2015 && strncmp(option + 4, "throwingNew", 11) == 0)
+                    AdditionalOptions += option;
                 else
                     found = false;
             } else {
@@ -2238,6 +2240,8 @@ void VCFilter::modifyPCHstage(QString str)
     CompilerTool.UsePrecompiledHeader     = (isCFile ? pchNone : pchCreateUsingSpecific);
     if (isCFile)
         CompilerTool.PrecompiledHeaderThrough = QLatin1String("$(NOINHERIT)");
+    else if (autogenSourceFile)
+        CompilerTool.PrecompiledHeaderThrough = Project->precompHFilename;
     CompilerTool.ForcedIncludeFiles       = QStringList("$(NOINHERIT)");
 }
 
@@ -2410,7 +2414,7 @@ bool VCFilter::addExtraCompiler(const VCFilterFile &info)
         // Make sure that all deps are only once
         QStringList uniqDeps;
         for (int c = 0; c < deps.count(); ++c) {
-            QString aDep = deps.at(c).trimmed();
+            QString aDep = deps.at(c);
             if (!aDep.isEmpty())
                 uniqDeps << aDep;
         }

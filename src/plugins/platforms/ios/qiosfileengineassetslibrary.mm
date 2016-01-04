@@ -48,20 +48,29 @@ static QThreadStorage<QPointer<QIOSAssetData> > g_assetDataCache;
 static const int kBufferSize = 10;
 static ALAsset *kNoAsset = 0;
 
-static void ensureAuthorizationDialogNotBlocked()
+static bool ensureAuthorizationDialogNotBlocked()
 {
     if ([ALAssetsLibrary authorizationStatus] != ALAuthorizationStatusNotDetermined)
-        return;
-    if (static_cast<QCoreApplicationPrivate *>(QObjectPrivate::get(qApp))->in_exec)
-        return;
+        return true;
 
-    // Since authorization status has not been determined, the user will be asked
-    // to authorize the app. But since main has not finished, the dialog will be held
-    // back until the launch completes. To avoid a dead-lock below, we start an event
-    // loop to complete the launch.
-    QEventLoop loop;
-    QTimer::singleShot(1, &loop, &QEventLoop::quit);
-    loop.exec();
+    if (static_cast<QCoreApplicationPrivate *>(QObjectPrivate::get(qApp))->in_exec)
+        return true;
+
+    if ([NSThread isMainThread]) {
+        // The dialog is about to show, but since main has not finished, the dialog will be held
+        // back until the launch completes. This is problematic since we cannot successfully return
+        // back to the caller before the asset is ready, which also includes showing the dialog. To
+        // work around this, we create an event loop to that will complete the launch (return from the
+        // applicationDidFinishLaunching callback). But this will only work if we're on the main thread.
+        QEventLoop loop;
+        QTimer::singleShot(1, &loop, &QEventLoop::quit);
+        loop.exec();
+    } else {
+        NSLog(@"QIOSFileEngine: unable to show assets authorization dialog from non-gui thread before QApplication is executing.");
+        return false;
+    }
+
+    return true;
 }
 
 // -------------------------------------------------------------------------
@@ -80,8 +89,10 @@ public:
         , m_writeIndex(0)
         , m_nextAssetReady(false)
     {
-        ensureAuthorizationDialogNotBlocked();
-        startEnumerate();
+        if (!ensureAuthorizationDialogNotBlocked())
+            writeAsset(kNoAsset);
+        else
+            startEnumerate();
     }
 
     ~QIOSAssetEnumerator()
@@ -186,7 +197,8 @@ public:
         , m_assetUrl(assetUrl)
         , m_assetLibrary(0)
     {
-        ensureAuthorizationDialogNotBlocked();
+        if (!ensureAuthorizationDialogNotBlocked())
+            return;
 
         if (QIOSAssetData *assetData = g_assetDataCache.localData()) {
             // It's a common pattern that QFiles pointing to the same path are created and destroyed
@@ -304,7 +316,7 @@ public:
         return g_iteratorCurrentUrl.localData();
     }
 
-    QFileInfo currentFileInfo() const
+    QFileInfo currentFileInfo() const Q_DECL_OVERRIDE
     {
         return QFileInfo(currentFileName());
     }
@@ -429,11 +441,11 @@ void QIOSFileEngineAssetsLibrary::setFileName(const QString &file)
     // QUrl::fromLocalFile() will remove double slashes. Since the asset url is
     // passed around as a file name in the app (and converted to/from a file url, e.g
     // in QFileDialog), we need to ensure that m_assetUrl ends up being valid.
-    int index = file.indexOf(QLatin1String("asset.JPG?"));
+    int index = file.indexOf(QLatin1String("/asset"));
     if (index == -1)
         m_assetUrl = QLatin1String("assets-library://");
     else
-        m_assetUrl = QLatin1String("assets-library://asset/") + file.mid(index);
+        m_assetUrl = QLatin1String("assets-library:/") + file.mid(index);
 }
 
 QStringList QIOSFileEngineAssetsLibrary::entryList(QDir::Filters filters, const QStringList &filterNames) const

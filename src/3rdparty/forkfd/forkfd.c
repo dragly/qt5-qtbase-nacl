@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2014 Intel Corporation
+** Copyright (C) 2015 Intel Corporation
 ** Copyright (C) 2015 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,12 +25,13 @@
 
 #ifndef _GNU_SOURCE
 #  define _GNU_SOURCE
-#  define _POSIX_C_SOURCE 200809L
-#  define _XOPEN_SOURCE 700
 #endif
+
 #include "forkfd.h"
 
 #include <sys/types.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <sys/wait.h>
 #include <assert.h>
 #include <errno.h>
@@ -38,20 +39,38 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #ifdef __linux__
-#  if (defined(__GLIBC__) && (__GLIBC__ << 16) + __GLIBC_MINOR__ >= 0x207) || defined(__BIONIC__)
+#  define HAVE_WAIT4    1
+#  if defined(__BIONIC__) || (defined(__GLIBC__) && (__GLIBC__ << 8) + __GLIBC_MINOR__ >= 0x207 && \
+       (!defined(__UCLIBC__) || ((__UCLIBC_MAJOR__ << 16) + (__UCLIBC_MINOR__ << 8) + __UCLIBC_SUBLEVEL__ > 0x90201)))
 #    include <sys/eventfd.h>
 #    define HAVE_EVENTFD  1
 #  endif
-#  if (defined(__GLIBC__) && (__GLIBC__ << 16) + __GLIBC_MINOR__ >= 0x209) || defined(__BIONIC__)
+#  if defined(__BIONIC__) || (defined(__GLIBC__) && (__GLIBC__ << 8) + __GLIBC_MINOR__ >= 0x209 && \
+       (!defined(__UCLIBC__) || ((__UCLIBC_MAJOR__ << 16) + (__UCLIBC_MINOR__ << 8) + __UCLIBC_SUBLEVEL__ > 0x90201)))
 #    define HAVE_PIPE2    1
 #  endif
+#endif
+#if defined(__FreeBSD__) && __FreeBSD__ >= 9
+#  include <sys/procdesc.h>
 #endif
 
 #if _POSIX_VERSION-0 >= 200809L || _XOPEN_VERSION-0 >= 500
 #  define HAVE_WAITID   1
+#endif
+#if !defined(WEXITED) || !defined(WNOWAIT)
+#  undef HAVE_WAITID
+#endif
+
+#if defined(__FreeBSD__)
+#  define HAVE_PIPE2    1
+#endif
+#if defined(__FreeBSD__) || defined(__DragonFly__) || defined(__FreeBSD_kernel__) || \
+    defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
+#  define HAVE_WAIT4    1
 #endif
 
 #if defined(__APPLE__)
@@ -78,6 +97,12 @@
     do {                      \
         ret = call;           \
     } while (ret == -1 && errno == EINTR)
+
+struct pipe_payload
+{
+    struct forkfd_info info;
+    struct rusage rusage;
+};
 
 typedef struct process_info
 {
@@ -179,34 +204,55 @@ static int isChildReady(pid_t pid, siginfo_t *info)
 }
 #endif
 
-static int tryReaping(pid_t pid, siginfo_t *info)
+static void convertStatusToForkfdInfo(int status, struct forkfd_info *info)
+{
+    if (WIFEXITED(status)) {
+        info->code = CLD_EXITED;
+        info->status = WEXITSTATUS(status);
+    } else if (WIFSIGNALED(status)) {
+        info->code = CLD_KILLED;
+#  ifdef WCOREDUMP
+        if (WCOREDUMP(status))
+            info->code = CLD_DUMPED;
+#  endif
+        info->status = WTERMSIG(status);
+    }
+}
+
+static int tryReaping(pid_t pid, struct pipe_payload *payload)
 {
     /* reap the child */
-#ifdef HAVE_WAITID
+#if defined(HAVE_WAIT4)
+    int status;
+    if (wait4(pid, &status, WNOHANG, &payload->rusage) <= 0)
+        return 0;
+    convertStatusToForkfdInfo(status, &payload->info);
+#else
+#  if defined(HAVE_WAITID)
     if (waitid_works) {
-        // we have waitid(2), which fills in siginfo_t for us
-        info->si_pid = 0;
-        return waitid(P_PID, pid, info, WEXITED | WNOHANG) == 0 && info->si_pid == pid;
-    }
-#endif
+        /* we have waitid(2), which gets us some payload values on some systems */
+        siginfo_t info;
+        info.si_pid = 0;
+        int ret = waitid(P_PID, pid, &info, WEXITED | WNOHANG) == 0 && info.si_pid == pid;
+        if (!ret)
+            return ret;
 
+        payload->info.code = info.si_code;
+        payload->info.status = info.si_status;
+#    ifdef __linux__
+        payload->rusage.ru_utime.tv_sec = info.si_utime / CLOCKS_PER_SEC;
+        payload->rusage.ru_utime.tv_usec = info.si_utime % CLOCKS_PER_SEC;
+        payload->rusage.ru_stime.tv_sec = info.si_stime / CLOCKS_PER_SEC;
+        payload->rusage.ru_stime.tv_usec = info.si_stime % CLOCKS_PER_SEC;
+#    endif
+        return 1;
+    }
+#  endif // HAVE_WAITID
     int status;
     if (waitpid(pid, &status, WNOHANG) <= 0)
         return 0;     // child did not change state
-
-    info->si_signo = SIGCHLD;
-    info->si_pid = pid;
-    if (WIFEXITED(status)) {
-        info->si_code = CLD_EXITED;
-        info->si_status = WEXITSTATUS(status);
-    } else if (WIFSIGNALED(status)) {
-        info->si_code = CLD_KILLED;
-#  ifdef WCOREDUMP
-        if (WCOREDUMP(status))
-            info->si_code = CLD_DUMPED;
-#  endif
-        info->si_status = WTERMSIG(status);
-    }
+    convertStatusToForkfdInfo(status, &payload->info);
+#endif // !HAVE_WAIT4
 
     return 1;
 }
@@ -220,10 +266,11 @@ static void freeInfo(Header *header, ProcessInfo *entry)
     assert(header->busyCount >= 0);
 }
 
-static void notifyAndFreeInfo(Header *header, ProcessInfo *entry, siginfo_t *info)
+static void notifyAndFreeInfo(Header *header, ProcessInfo *entry,
+                              const struct pipe_payload *payload)
 {
     ssize_t ret;
-    EINTR_LOOP(ret, write(entry->deathPipe, info, sizeof(*info)));
+    EINTR_LOOP(ret, write(entry->deathPipe, payload, sizeof(*payload)));
     EINTR_LOOP(ret, close(entry->deathPipe));
 
     freeInfo(header, entry);
@@ -243,9 +290,11 @@ static void sigchld_handler(int signum)
         /* is this one of our children? */
         BigArray *array;
         siginfo_t info;
+        struct pipe_payload payload;
         int i;
 
         memset(&info, 0, sizeof info);
+        memset(&payload, 0, sizeof payload);
 
 #ifdef HAVE_WAITID
         if (!waitid_works)
@@ -275,8 +324,8 @@ search_next_child:
                                             FFD_ATOMIC_ACQUIRE, FFD_ATOMIC_RELAXED)) {
                 /* this is our child, send notification and free up this entry */
                 /* ### FIXME: what if tryReaping returns false? */
-                if (tryReaping(pid, &info))
-                    notifyAndFreeInfo(&children.header, &children.entries[i], &info);
+                if (tryReaping(pid, &payload))
+                    notifyAndFreeInfo(&children.header, &children.entries[i], &payload);
                 goto search_next_child;
             }
         }
@@ -290,8 +339,8 @@ search_next_child:
                                                 FFD_ATOMIC_ACQUIRE, FFD_ATOMIC_RELAXED)) {
                     /* this is our child, send notification and free up this entry */
                     /* ### FIXME: what if tryReaping returns false? */
-                    if (tryReaping(pid, &info))
-                        notifyAndFreeInfo(&array->header, &array->entries[i], &info);
+                    if (tryReaping(pid, &payload))
+                        notifyAndFreeInfo(&array->header, &array->entries[i], &payload);
                     goto search_next_child;
                 }
             }
@@ -321,9 +370,9 @@ search_arrays:
                     continue;
             }
 #endif
-            if (tryReaping(pid, &info)) {
+            if (tryReaping(pid, &payload)) {
                 /* this is our child, send notification and free up this entry */
-                notifyAndFreeInfo(&children.header, &children.entries[i], &info);
+                notifyAndFreeInfo(&children.header, &children.entries[i], &payload);
             }
         }
 
@@ -344,9 +393,9 @@ search_arrays:
                         continue;
                 }
 #endif
-                if (tryReaping(pid, &info)) {
+                if (tryReaping(pid, &payload)) {
                     /* this is our child, send notification and free up this entry */
-                    notifyAndFreeInfo(&array->header, &array->entries[i], &info);
+                    notifyAndFreeInfo(&array->header, &array->entries[i], &payload);
                 }
             }
 
@@ -463,6 +512,55 @@ static int create_pipe(int filedes[], int flags)
     return ret;
 }
 
+#if defined(FORKFD_NO_SPAWNFD) && defined(__FreeBSD__) && __FreeBSD__ >= 9
+#  if __FreeBSD__ == 9
+/* PROCDESC is an optional feature in the kernel and wasn't enabled
+ * by default on FreeBSD 9. So we need to check for it at runtime. */
+static ffd_atomic_int system_has_forkfd = FFD_ATOMIC_INIT(1);
+#  else
+/* On FreeBSD 10, PROCDESC was enabled by default. On v11, it's not an option
+ * anymore and can't be disabled. */
+static const int system_has_forkfd = 1;
+#  endif
+
+static int system_forkfd(int flags, pid_t *ppid)
+{
+    int ret;
+    pid_t pid;
+    pid = pdfork(&ret, PD_DAEMON);
+    if (__builtin_expect(pid == -1, 0)) {
+#  if __FreeBSD__ == 9
+        if (errno == ENOSYS) {
+            /* PROCDESC wasn't compiled into the kernel: don't try it again. */
+            ffd_atomic_store(&system_has_forkfd, 0, FFD_ATOMIC_RELAXED);
+        }
+#  endif
+        return -1;
+    }
+    if (pid == 0) {
+        /* child process */
+        return FFD_CHILD_PROCESS;
+    }
+
+    /* parent process */
+    if (flags & FFD_CLOEXEC)
+        fcntl(ret, F_SETFD, FD_CLOEXEC);
+    if (flags & FFD_NONBLOCK)
+        fcntl(ret, F_SETFL, fcntl(ret, F_GETFL) | O_NONBLOCK);
+    if (ppid)
+        *ppid = pid;
+    return ret;
+}
+#else
+static const int system_has_forkfd = 0;
+static int system_forkfd(int flags, pid_t *ppid)
+{
+    (void)flags;
+    (void)ppid;
+    return -1;
+}
+#endif
+
 #ifndef FORKFD_NO_FORKFD
 /**
  * @brief forkfd returns a file descriptor representing a child process
@@ -509,6 +607,12 @@ int forkfd(int flags, pid_t *ppid)
 #ifdef __linux__
     int efd;
 #endif
+
+    if (system_has_forkfd) {
+        ret = system_forkfd(flags, ppid);
+        if (system_has_forkfd)
+            return ret;
+    }
 
     (void) pthread_once(&forkfd_initialization, forkfd_initialize);
 
@@ -620,18 +724,20 @@ err_free:
 }
 #endif // FORKFD_NO_FORKFD
 
-#if defined(_POSIX_SPAWN) && !defined(FORKFD_NO_SPAWNFD)
+#if _POSIX_SPAWN > 0 && !defined(FORKFD_NO_SPAWNFD)
 int spawnfd(int flags, pid_t *ppid, const char *path, const posix_spawn_file_actions_t *file_actions,
             posix_spawnattr_t *attrp, char *const argv[], char *const envp[])
 {
     Header *header;
     ProcessInfo *info;
-    siginfo_t si;
+    struct pipe_payload payload;
     pid_t pid;
     int death_pipe[2];
     int ret = -1;
     /* we can only do work if we have a way to start the child in stopped mode;
      * otherwise, we have a major race condition. */
+
+    assert(!system_has_forkfd);
 
     (void) pthread_once(&forkfd_initialization, forkfd_initialize);
 
@@ -664,8 +770,8 @@ int spawnfd(int flags, pid_t *ppid, const char *path, const posix_spawn_file_act
     ffd_atomic_store(&info->pid, pid, FFD_ATOMIC_RELEASE);
 
     /* check if the child has already exited */
-    if (tryReaping(pid, &si))
-        notifyAndFreeInfo(header, info, &si);
+    if (tryReaping(pid, &payload))
+        notifyAndFreeInfo(header, info, &payload);
 
     ret = death_pipe[0];
     return ret;
@@ -682,3 +788,48 @@ out:
     return -1;
 }
 #endif // _POSIX_SPAWN && !FORKFD_NO_SPAWNFD
+
+
+int forkfd_wait(int ffd, forkfd_info *info, struct rusage *rusage)
+{
+    struct pipe_payload payload;
+    int ret;
+
+    if (system_has_forkfd) {
+#if defined(__FreeBSD__) && __FreeBSD__ >= 9
+        pid_t pid;
+        int status;
+        int options = WEXITED;
+
+        ret = pdgetpid(ffd, &pid);
+        if (ret == -1)
+            return ret;
+        ret = fcntl(ffd, F_GETFL);
+        if (ret == -1)
+            return ret;
+        options |= (ret & O_NONBLOCK) ? WNOHANG : 0;
+        ret = wait4(pid, &status, options, rusage);
+        if (ret != -1 && info)
+            convertStatusToForkfdInfo(status, info);
+        return ret == -1 ? -1 : 0;
+#endif
+    }
+
+    ret = read(ffd, &payload, sizeof(payload));
+    if (ret == -1)
+        return ret;     /* pass errno, probably EINTR, EBADF or EWOULDBLOCK */
+
+    assert(ret == sizeof(payload));
+    if (info)
+        *info = payload.info;
+    if (rusage)
+        *rusage = payload.rusage;
+
+    return 0;           /* success */
+}
+
+
+int forkfd_close(int ffd)
+{
+    return close(ffd);
+}

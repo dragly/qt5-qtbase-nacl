@@ -97,7 +97,7 @@
 /* Intel C++ disguising as Visual C++: the `using' keyword avoids warnings */
 #  if defined(__INTEL_COMPILER)
 #    define Q_DECL_VARIABLE_DEPRECATED
-#    define Q_CC_INTEL
+#    define Q_CC_INTEL  __INTEL_COMPILER
 #  endif
 
 /* only defined for MSVC since that's the only compiler that actually optimizes for this */
@@ -155,7 +155,9 @@
 /* Clang also masquerades as GCC */
 #    if defined(__apple_build_version__)
 #      /* http://en.wikipedia.org/wiki/Xcode#Toolchain_Versions */
-#      if __apple_build_version__ >= 6000051
+#      if __apple_build_version__ >= 7000053
+#        define Q_CC_CLANG 306
+#      elif __apple_build_version__ >= 6000051
 #        define Q_CC_CLANG 305
 #      elif __apple_build_version__ >= 5030038
 #        define Q_CC_CLANG 304
@@ -556,8 +558,27 @@
 #      define Q_COMPILER_ALIGNAS
 #      define Q_COMPILER_ALIGNOF
 #      define Q_COMPILER_INHERITING_CONSTRUCTORS
-#      define Q_COMPILER_THREAD_LOCAL
+#      ifndef Q_OS_OSX
+//       C++11 thread_local is broken on OS X (Clang doesn't support it either)
+#        define Q_COMPILER_THREAD_LOCAL
+#      endif
 #      define Q_COMPILER_UDL
+#    endif
+#    ifdef _MSC_VER
+#      if _MSC_VER == 1700
+//       <initializer_list> is missing with MSVC 2012 (it's present in 2010, 2013 and up)
+#        undef Q_COMPILER_INITIALIZER_LISTS
+#      endif
+#      if _MSC_VER < 1900
+//       ICC disables unicode string support when compatibility mode with MSVC 2013 or lower is active
+#        undef Q_COMPILER_UNICODE_STRINGS
+//       Even though ICC knows about ref-qualified members, MSVC 2013 or lower doesn't, so
+//       certain member functions (like QString::toUpper) may be missing from the DLLs.
+#        undef Q_COMPILER_REF_QUALIFIERS
+//       Disable constexpr unless the MS headers have constexpr in all the right places too
+//       (like std::numeric_limits<T>::max())
+#        undef Q_COMPILER_CONSTEXPR
+#      endif
 #    endif
 #  endif
 #endif
@@ -613,7 +634,7 @@
 #    if __has_feature(cxx_strong_enums)
 #      define Q_COMPILER_CLASS_ENUM
 #    endif
-#    if __has_feature(cxx_constexpr)
+#    if __has_feature(cxx_constexpr) && Q_CC_CLANG > 302 /* CLANG 3.2 has bad/partial support */
 #      define Q_COMPILER_CONSTEXPR
 #    endif
 #    if __has_feature(cxx_decltype) /* && __has_feature(cxx_decltype_incomplete_return_types) */
@@ -885,12 +906,20 @@
 #      define Q_COMPILER_RANGE_FOR
 #      define Q_COMPILER_REF_QUALIFIERS
 #      define Q_COMPILER_THREAD_LOCAL
-#      define Q_COMPILER_THREADSAFE_STATICS
+// Broken, see QTBUG-47224 and https://connect.microsoft.com/VisualStudio/feedback/details/1549785
+//#      define Q_COMPILER_THREADSAFE_STATICS
 #      define Q_COMPILER_UDL
 #      define Q_COMPILER_UNICODE_STRINGS
 // Uniform initialization is not working yet -- build errors with QUuid
 //#      define Q_COMPILER_UNIFORM_INIT
 #      define Q_COMPILER_UNRESTRICTED_UNIONS
+#    endif
+#    if _MSC_FULL_VER >= 190023419
+#      define Q_COMPILER_ATTRIBUTES
+// Almost working, see https://connect.microsoft.com/VisualStudio/feedback/details/2011648
+//#      define Q_COMPILER_CONSTEXPR
+#      define Q_COMPILER_THREADSAFE_STATICS
+#      define Q_COMPILER_UNIFORM_INIT
 #    endif
 #  endif /* __cplusplus */
 #endif /* Q_CC_MSVC */
@@ -900,24 +929,26 @@
 # if defined(Q_OS_QNX)
 // QNX: test if we are using libcpp (Dinkumware-based).
 // Older versions (QNX 650) do not support C++11 features
-// _HAS_CPP0X is defined by toolchains that actually include
+// _HAS_* macros are set to 1 by toolchains that actually include
 // Dinkum C++11 libcpp.
-#  if defined(_HAS_DINKUM_CLIB) && !defined(_HAS_CPP0X)
+#  if !__GLIBCXX__
+#   if !_HAS_CPP0X
 // Disable C++11 features that depend on library support
 #    undef Q_COMPILER_INITIALIZER_LISTS
 #    undef Q_COMPILER_RVALUE_REFS
 #    undef Q_COMPILER_REF_QUALIFIERS
 #    undef Q_COMPILER_UNICODE_STRINGS
 #    undef Q_COMPILER_NOEXCEPT
-#  endif
-#  if defined(_HAS_DINKUM_CLIB) && !defined(_HAS_NULLPTR_T)
+#   endif // !_HAS_CPP0X
+#   if !_HAS_NULLPTR_T
 #    undef Q_COMPILER_NULLPTR
-#  endif
-#  if defined(_HAS_DINKUM_CLIB) && !defined(_HAS_CONSTEXPR)
+#   endif //!_HAS_NULLPTR_T
+#   if !_HAS_CONSTEXPR
 // The libcpp is missing constexpr keywords on important functions like std::numeric_limits<>::min()
 // Disable constexpr support on QNX even if the compiler supports it
 #    undef Q_COMPILER_CONSTEXPR
-#  endif
+#   endif // !_HAS_CONSTEXPR
+#  endif // !__GLIBCXX__
 # endif // Q_OS_QNX
 # if (defined(Q_CC_CLANG) || defined(Q_CC_INTEL)) && defined(Q_OS_MAC) && defined(__GNUC_LIBSTD__) \
     && ((__GNUC_LIBSTD__-0) * 100 + __GNUC_LIBSTD_MINOR__-0 <= 402)
@@ -1121,10 +1152,10 @@
 #  define QT_WARNING_PUSH                       QT_DO_PRAGMA(clang diagnostic push)
 #  define QT_WARNING_POP                        QT_DO_PRAGMA(clang diagnostic pop)
 #  define QT_WARNING_DISABLE_CLANG(text)        QT_DO_PRAGMA(clang diagnostic ignored text)
-#  define QT_WARNING_DISABLE_GCC(text)          QT_DO_PRAGMA(GCC diagnostic ignored text)   // GCC directives work in Clang too
+#  define QT_WARNING_DISABLE_GCC(text)
 #  define QT_WARNING_DISABLE_INTEL(number)
 #  define QT_WARNING_DISABLE_MSVC(number)
-#elif defined(Q_CC_GNU) && (__GNUC__ * 100 + __GNUC_MINOR__ >= 405)
+#elif defined(Q_CC_GNU) && (__GNUC__ * 100 + __GNUC_MINOR__ >= 406)
 #  define QT_WARNING_PUSH                       QT_DO_PRAGMA(GCC diagnostic push)
 #  define QT_WARNING_POP                        QT_DO_PRAGMA(GCC diagnostic pop)
 #  define QT_WARNING_DISABLE_GCC(text)          QT_DO_PRAGMA(GCC diagnostic ignored text)

@@ -197,16 +197,11 @@ class tst_QAbstractItemView : public QObject
     Q_OBJECT
 
 public:
-
-    tst_QAbstractItemView();
-    virtual ~tst_QAbstractItemView();
     void basic_tests(TestView *view);
 
-public slots:
-    void initTestCase();
-    void cleanupTestCase();
-
 private slots:
+    void initTestCase();
+    void cleanup();
     void getSetCheck();
     void emptyModels_data();
     void emptyModels();
@@ -255,6 +250,7 @@ private slots:
     void QTBUG39324_settingSameInstanceOfIndexWidget();
     void sizeHintChangeTriggersLayout();
     void shiftSelectionAfterChangingModelContents();
+    void QTBUG48968_reentrant_updateEditorGeometries();
 };
 
 class MyAbstractItemDelegate : public QAbstractItemDelegate
@@ -360,14 +356,6 @@ void tst_QAbstractItemView::getSetCheck()
     QCOMPARE(16, obj1->autoScrollMargin());
 }
 
-tst_QAbstractItemView::tst_QAbstractItemView()
-{
-}
-
-tst_QAbstractItemView::~tst_QAbstractItemView()
-{
-}
-
 void tst_QAbstractItemView::initTestCase()
 {
 #ifdef Q_OS_WINCE_WM
@@ -375,8 +363,9 @@ void tst_QAbstractItemView::initTestCase()
 #endif
 }
 
-void tst_QAbstractItemView::cleanupTestCase()
+void tst_QAbstractItemView::cleanup()
 {
+    QVERIFY(QApplication::topLevelWidgets().isEmpty());
 }
 
 void tst_QAbstractItemView::emptyModels_data()
@@ -1048,7 +1037,7 @@ void tst_QAbstractItemView::dragAndDropOnChild()
             ++successes;
     }
 
-    QVERIFY(successes == 0);
+    QCOMPARE(successes, 0);
 }
 
 #endif // 0
@@ -1226,7 +1215,7 @@ void tst_QAbstractItemView::setCurrentIndex()
     view->setModel(model);
 
     view->setCurrentIndex(model->index(0,0));
-    QVERIFY(view->currentIndex() == model->index(0,0));
+    QCOMPARE(view->currentIndex(), model->index(0,0));
     view->setCurrentIndex(model->index(1,0));
     QVERIFY(view->currentIndex() == model->index(result ? 1 : 0,0));
 }
@@ -1330,8 +1319,7 @@ void tst_QAbstractItemView::task200665_itemEntered()
     moveCursorAway(&view);
     view.show();
     QVERIFY(QTest::qWaitForWindowExposed(&view));
-    QRect rect = view.visualRect(model.index(0,0));
-    QCursor::setPos( view.viewport()->mapToGlobal(rect.center()) );
+    QCursor::setPos( view.geometry().center() );
     QCoreApplication::processEvents();
     QSignalSpy spy(&view, SIGNAL(entered(QModelIndex)));
     view.verticalScrollBar()->setValue(view.verticalScrollBar()->maximum());
@@ -2001,6 +1989,43 @@ void tst_QAbstractItemView::shiftSelectionAfterChangingModelContents()
     QCOMPARE(selected.count(), 2);
     QVERIFY(selected.contains(indexD));
     QVERIFY(selected.contains(indexE));
+}
+
+void tst_QAbstractItemView::QTBUG48968_reentrant_updateEditorGeometries()
+{
+
+    QStandardItemModel *m = new QStandardItemModel(this);
+    for (int i=0; i<10; ++i) {
+        QStandardItem *item = new QStandardItem(QString("Item number %1").arg(i));
+        item->setEditable(true);
+        for (int j=0; j<5; ++j) {
+            QStandardItem *child = new QStandardItem(QString("Child Item number %1").arg(j));
+            item->setChild(j, 0, child);
+        }
+        m->setItem(i, 0, item);
+    }
+
+    QTreeView tree;
+    tree.setModel(m);
+    tree.setRootIsDecorated(false);
+    QObject::connect(&tree, SIGNAL(doubleClicked(QModelIndex)), &tree, SLOT(setRootIndex(QModelIndex)));
+    tree.show();
+    QTest::qWaitForWindowActive(&tree);
+
+    // Trigger editing idx
+    QModelIndex idx = m->index(1, 0);
+    const QPoint pos = tree.visualRect(idx).center();
+    QTest::mouseClick(tree.viewport(), Qt::LeftButton, Qt::NoModifier, pos);
+    QTest::mouseDClick(tree.viewport(), Qt::LeftButton, Qt::NoModifier, pos);
+
+    // Add more children to idx
+    QStandardItem *item = m->itemFromIndex(idx);
+    for (int j=5; j<10; ++j) {
+        QStandardItem *child = new QStandardItem(QString("Child Item number %1").arg(j));
+        item->setChild(j, 0, child);
+    }
+
+    // No crash, all fine.
 }
 
 QTEST_MAIN(tst_QAbstractItemView)

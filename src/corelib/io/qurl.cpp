@@ -2411,8 +2411,8 @@ void QUrl::setPort(int port)
     d->clearError();
 
     if (port < -1 || port > 65535) {
-        port = -1;
         d->setError(QUrlPrivate::InvalidPortError, QString::number(port), 0);
+        port = -1;
     }
 
     d->port = port;
@@ -2470,8 +2470,10 @@ void QUrl::setPath(const QString &path, ParsingMode mode)
         mode = TolerantMode;
     }
 
-    data = qt_normalizePathSegments(data, false);
-    d->setPath(data, 0, data.length());
+    int from = 0;
+    while (from < data.length() - 2 && data.midRef(from, 2) == QLatin1String("//"))
+        ++from;
+    d->setPath(data, from, data.length());
 
     // optimized out, since there is no path delimiter
 //    if (path.isNull())

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <manifest package="org.qtproject.example" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="1.0" android:versionCode="1" android:installLocation="auto">
     <application android:hardwareAccelerated="true" android:name="org.qtproject.qt5.android.bindings.QtApplication" android:label="-- %%INSERT_APP_NAME%% --">
-        <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation"
+        <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation"
                   android:name="org.qtproject.qt5.android.bindings.QtActivity"
                   android:label="-- %%INSERT_APP_NAME%% --"
                   android:screenOrientation="unspecified"
@@ -44,6 +44,10 @@
                           signal is sent! -->
             <meta-data android:name="android.app.background_running" android:value="false"/>
             <!-- Background running -->
+
+            <!-- auto screen scale factor -->
+            <meta-data android:name="android.app.auto_screen_scale_factor" android:value="false"/>
+            <!-- auto screen scale factor -->
         </activity>
     </application>
     <uses-sdk android:minSdkVersion="9" android:targetSdkVersion="14"/>

@@ -339,8 +339,7 @@ void QApplicationPrivate::createEventDispatcher()
         \li  Miscellaneous
         \li  closeAllWindows(),
             startingUp(),
-            closingDown(),
-            type().
+            closingDown().
     \endtable
 
     \sa QCoreApplication, QAbstractEventDispatcher, QEventLoop, QSettings
@@ -399,8 +398,6 @@ void qt_cleanup();
 QStyle *QApplicationPrivate::app_style = 0;        // default application style
 bool QApplicationPrivate::overrides_native_style = false; // whether native QApplication style is
                                                           // overridden, i.e. not native
-QString QApplicationPrivate::styleOverride;        // style override
-
 #ifndef QT_NO_STYLE_STYLESHEET
 QString QApplicationPrivate::styleSheet;           // default application stylesheet
 #endif
@@ -466,6 +463,13 @@ QDesktopWidget *qt_desktopWidget = 0;                // root window widgets
 */
 void QApplicationPrivate::process_cmdline()
 {
+    if (!styleOverride.isEmpty()) {
+        if (app_style) {
+            delete app_style;
+            app_style = 0;
+        }
+    }
+
     // process platform-indep command line
     if (!qt_is_gui_used || !argc)
         return;
@@ -481,13 +485,8 @@ void QApplicationPrivate::process_cmdline()
         QByteArray arg = argv[i];
         if (arg.startsWith("--"))
             arg.remove(0, 1);
-        QString s;
         if (arg == "-qdevel" || arg == "-qdebug") {
             // obsolete argument
-        } else if (arg.indexOf("-style=", 0) != -1) {
-            s = QString::fromLocal8Bit(arg.right(arg.length() - 7).toLower());
-        } else if (arg == "-style" && i < argc-1) {
-            s = QString::fromLocal8Bit(argv[++i]).toLower();
 #ifndef QT_NO_STYLE_STYLESHEET
         } else if (arg == "-stylesheet" && i < argc -1) {
             styleSheet = QLatin1String("file:///");
@@ -500,13 +499,6 @@ void QApplicationPrivate::process_cmdline()
             widgetCount = true;
         } else {
             argv[j++] = argv[i];
-        }
-        if (!s.isEmpty()) {
-            if (app_style) {
-                delete app_style;
-                app_style = 0;
-            }
-            styleOverride = s;
         }
     }
 
@@ -558,7 +550,7 @@ void QApplicationPrivate::process_cmdline()
             and will make the application wait until a debugger connects to it.
     \endlist
 
-    \sa arguments()
+    \sa QCoreApplication::arguments()
 */
 
 #ifdef Q_QDOC
@@ -748,15 +740,15 @@ void QApplicationPrivate::initializeWidgetFontHash()
     if (const QFont *font = theme->font(QPlatformTheme::ItemViewFont))
         fontHash->insert(QByteArrayLiteral("QAbstractItemView"), *font);
     if (const QFont *font = theme->font(QPlatformTheme::ListViewFont))
-        fontHash->insert(QByteArrayLiteral("QListViewFont"), *font);
+        fontHash->insert(QByteArrayLiteral("QListView"), *font);
     if (const QFont *font = theme->font(QPlatformTheme::HeaderViewFont))
-        fontHash->insert(QByteArrayLiteral("QHeaderViewFont"), *font);
+        fontHash->insert(QByteArrayLiteral("QHeaderView"), *font);
     if (const QFont *font = theme->font(QPlatformTheme::ListBoxFont))
         fontHash->insert(QByteArrayLiteral("QListBox"), *font);
     if (const QFont *font = theme->font(QPlatformTheme::ComboMenuItemFont))
-        fontHash->insert(QByteArrayLiteral("QComboMenuItemFont"), *font);
+        fontHash->insert(QByteArrayLiteral("QComboMenuItem"), *font);
     if (const QFont *font = theme->font(QPlatformTheme::ComboLineEditFont))
-        fontHash->insert(QByteArrayLiteral("QComboLineEditFont"), *font);
+        fontHash->insert(QByteArrayLiteral("QComboLineEdit"), *font);
     if (const QFont *font = theme->font(QPlatformTheme::SmallFont))
         fontHash->insert(QByteArrayLiteral("QSmallFont"), *font);
     if (const QFont *font = theme->font(QPlatformTheme::MiniFont))
@@ -1530,7 +1522,7 @@ void QApplicationPrivate::setPalette_helper(const QPalette &palette, const char*
 
     \note Some styles do not use the palette for all drawing, for instance, if
     they make use of native theme engines. This is the case for the Windows XP,
-    Windows Vista, and Mac OS X styles.
+    Windows Vista, and OS X styles.
 
     \sa QWidget::setPalette(), palette(), QStyle::polish()
 */
@@ -1906,7 +1898,7 @@ bool QApplicationPrivate::tryCloseAllWidgetWindows(QWindowList *processedWindows
         if (!w->isVisible() || w->data->is_closing)
             break;
         QWindow *window = w->windowHandle();
-        if (!w->close()) // Qt::WA_DeleteOnClose may cause deletion.
+        if (!window->close()) // Qt::WA_DeleteOnClose may cause deletion.
             return false;
         if (window)
             processedWindows->append(window);
@@ -1918,7 +1910,7 @@ bool QApplicationPrivate::tryCloseAllWidgetWindows(QWindowList *processedWindows
         if (w->isVisible() && w->windowType() != Qt::Desktop &&
                 !w->testAttribute(Qt::WA_DontShowOnScreen) && !w->data->is_closing) {
             QWindow *window = w->windowHandle();
-            if (!w->close())  // Qt::WA_DeleteOnClose may cause deletion.
+            if (!window->close())  // Qt::WA_DeleteOnClose may cause deletion.
                 return false;
             if (window)
                 processedWindows->append(window);
@@ -1951,7 +1943,7 @@ bool QApplicationPrivate::tryCloseAllWindows()
     \l quitOnLastWindowClosed to false.
 
     \sa quitOnLastWindowClosed, lastWindowClosed(), QWidget::close(),
-    QWidget::closeEvent(), lastWindowClosed(), quit(), topLevelWidgets(),
+    QWidget::closeEvent(), lastWindowClosed(), QCoreApplication::quit(), topLevelWidgets(),
     QWidget::isWindow()
 */
 void QApplication::closeAllWindows()
@@ -2249,8 +2241,10 @@ void QApplicationPrivate::notifyActiveWindowChange(QWindow *previous)
     QApplication::setActiveWindow(tlw);
     // QTBUG-37126, Active X controls may set the focus on native child widgets.
     if (wnd && tlw && wnd != tlw->windowHandle()) {
-        if (QWidgetWindow *widgetWindow = qobject_cast<QWidgetWindow *>(wnd))
-            widgetWindow->widget()->setFocus(Qt::ActiveWindowFocusReason);
+        if (QWidgetWindow *widgetWindow = qobject_cast<QWidgetWindow *>(wnd)) {
+            if (widgetWindow->widget()->inherits("QAxHostWidget"))
+                widgetWindow->widget()->setFocus(Qt::ActiveWindowFocusReason);
+        }
     }
 }
 
@@ -2969,8 +2963,8 @@ int QApplication::startDragDistance()
     application will have time to exit its event loop and execute code at the
     end of the \c{main()} function, after the QApplication::exec() call.
 
-    \sa quitOnLastWindowClosed, quit(), exit(), processEvents(),
-        QCoreApplication::exec()
+    \sa quitOnLastWindowClosed, QCoreApplication::quit(), QCoreApplication::exit(),
+        QCoreApplication::processEvents(), QCoreApplication::exec()
 */
 int QApplication::exec()
 {
@@ -3229,7 +3223,7 @@ bool QApplication::notify(QObject *receiver, QEvent *e)
                     QApplicationPrivate::giveFocusAccordingToFocusPolicy(w, e, relpos);
 
                 // ### Qt 5 These dynamic tool tips should be an OPT-IN feature. Some platforms
-                // like Mac OS X (probably others too), can optimize their views by not
+                // like OS X (probably others too), can optimize their views by not
                 // dispatching mouse move events. We have attributes to control hover,
                 // and mouse tracking, but as long as we are deciding to implement this
                 // feature without choice of opting-in or out, you ALWAYS have to have
@@ -3688,7 +3682,9 @@ bool QApplication::notify(QObject *receiver, QEvent *e)
 bool QApplicationPrivate::notify_helper(QObject *receiver, QEvent * e)
 {
     // send to all application event filters
-    if (sendThroughApplicationEventFilters(receiver, e))
+    if (threadRequiresCoreApplication()
+        && receiver->d_func()->threadData->thread == mainThread()
+        && sendThroughApplicationEventFilters(receiver, e))
         return true;
 
     if (receiver->isWidgetType()) {
@@ -3933,7 +3929,7 @@ bool QApplication::keypadNavigationEnabled()
 
     Currently this function does nothing on Qt for Embedded Linux.
 
-    On Mac OS X, this works more at the application level and will cause the
+    On OS X, this works more at the application level and will cause the
     application icon to bounce in the dock.
 
     On Windows, this causes the window's taskbar entry to flash for a time. If
