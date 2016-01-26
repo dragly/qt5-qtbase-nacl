@@ -140,10 +140,12 @@ int sigaction(int, const struct sigaction *, struct sigaction *)
     return 0;
 }
 
+#ifndef Q_OS_NACL_EMSCRIPTEN
 int open(const char *, int, ...)
 {
     return 0;
 }
+#endif
 
 int open64(const char *, int, ...)
 {
@@ -155,12 +157,12 @@ long pathconf(const char *, int)
     return 0;
 }
 
+#ifndef Q_OS_NACL_EMSCRIPTEN
 int access(const char *, int)
 {
     return 0;
 }
 
-#ifndef Q_OS_NACL_EMSCRIPTEN
 typedef long off64_t;
 off64_t ftello64(void *)
 {
