@@ -111,6 +111,10 @@
     Messaging_PostMessage
   ]);
 
+  registerInterface("PPB_Messaging;1.2", [
+    Messaging_PostMessage
+  ]);
+
   var Var_AddRef = function(v) {
     if (glue.isRefCountedVarType(glue.getVarType(v))) {
       resources.addRef(glue.getVarUID(v));

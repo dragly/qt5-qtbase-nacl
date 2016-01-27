@@ -88,4 +88,15 @@
     View_GetDeviceScale,
     View_GetCSSScale,
   ]);
+
+  registerInterface("PPB_View;1.2", [
+    View_IsView,
+    View_GetRect,
+    View_IsFullscreen,
+    View_IsVisible,
+    View_IsPageVisible,
+    View_GetClipRect,
+    View_GetDeviceScale,
+    View_GetCSSScale,
+  ]);
 })();

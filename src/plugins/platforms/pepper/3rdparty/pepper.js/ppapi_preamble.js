@@ -299,7 +299,7 @@ var createInterface = function(name, functions) {
 var Module = {
   "noInitialRun": true,
   "noExitRuntime": true,
-  "preInit": function() {
+  "onRuntimeInitialized": function() {
     for (var i = 0; i < declaredInterfaces.length; i++) {
       var inf = declaredInterfaces[i];
       if (inf.supported === undefined || inf.supported()) {
@@ -309,6 +309,7 @@ var Module = {
       }
     }
     declaredInterfaces = [];
+    instanceToCreate();
   }
 };
 
