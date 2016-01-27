@@ -33,25 +33,25 @@
 **
 ****************************************************************************/
 
-#ifndef QPEPPEREVENTDISPATCHER_H
-#define QPEPPEREVENTDISPATCHER_H
+#ifndef QEMSCRIPTENEVENTDISPATCHER_H
+#define QEMSCRIPTENEVENTDISPATCHER_H
 
 #include <QtCore/QHash>
 #include <QtCore/QLoggingCategory>
 #include "../platformsupport/eventdispatchers/qunixeventdispatcher_qpa_p.h"
 
-#include <ppapi/cpp/message_loop.h>
-#include <ppapi/utility/completion_callback_factory.h>
+//#include <ppapi/cpp/message_loop.h>
+//#include <ppapi/utility/completion_callback_factory.h>
 
 QT_BEGIN_NAMESPACE
 
-Q_DECLARE_LOGGING_CATEGORY(QT_PLATFORM_PEPPER_EVENTDISPATHCER);
+Q_DECLARE_LOGGING_CATEGORY(QT_PLATFORM_EMSCRIPTEN_EVENTDISPATHCER)
 
-class QPepperEventDispatcher : public QUnixEventDispatcherQPA
+class QEmscriptenEventDispatcher : public QUnixEventDispatcherQPA
 {
 public:
-    explicit QPepperEventDispatcher(QObject *parent = 0);
-    ~QPepperEventDispatcher();
+    explicit QEmscriptenEventDispatcher(QObject *parent = 0);
+    ~QEmscriptenEventDispatcher();
 
     bool processEvents(QEventLoop::ProcessEventsFlags flags
                        = QEventLoop::EventLoopExec) Q_DECL_OVERRIDE;
@@ -66,10 +66,10 @@ public:
     void wakeUp() Q_DECL_OVERRIDE;
 
 private:
-    struct PepperTimerInfo {
+    struct EmscriptenTimerInfo {
 
-        PepperTimerInfo(){};
-        PepperTimerInfo(int timerId, int interval, Qt::TimerType timerType, QObject *object)
+        EmscriptenTimerInfo(){}
+        EmscriptenTimerInfo(int timerId, int interval, Qt::TimerType timerType, QObject *object)
             : timerId(timerId)
             , interval(interval)
             , timerType(timerType)
@@ -82,7 +82,7 @@ private:
         QObject *object;
     };
 
-    void startTimer(PepperTimerInfo info);
+    void startTimer(EmscriptenTimerInfo info);
     void timerCallback(int32_t result, int32_t timerSerial);
     void scheduleProcessEvents();
     void processEventsCallback(int32_t status);
@@ -91,9 +91,9 @@ private:
     QHash<int, int> m_activeTimerIds;                // timer serial -> Qt timer id
     QHash<int, int> m_activeTimerSerials;            // Qt timer id -> timer serial
     QMultiHash<QObject *, int> m_activeObjectTimers; // QObject * -> Qt timer id
-    QHash<int, PepperTimerInfo> m_timerDetails;
-    pp::MessageLoop m_messageLoop;
-    pp::CompletionCallbackFactory<QPepperEventDispatcher> m_completionCallbackFactory;
+    QHash<int, EmscriptenTimerInfo> m_timerDetails;
+//    pp::MessageLoop m_messageLoop;
+//    pp::CompletionCallbackFactory<QEmscriptenEventDispatcher> m_completionCallbackFactory;
 };
 
 QT_END_NAMESPACE

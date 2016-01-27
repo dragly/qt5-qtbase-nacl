@@ -33,45 +33,55 @@
 **
 ****************************************************************************/
 
-#include "qpepperscreen.h"
+#include "qemscriptenscreen.h"
 
-#include "qpeppercursor.h"
-#include "qpepperhelpers.h"
-#include "qpepperinstance_p.h"
-#include "qpepperintegration.h"
+#include "qemscriptencursor.h"
+//#include "qemscriptenhelpers.h"
+#include "qemscripteninstance_p.h"
+#include "qemscriptenintegration.h"
 
 #include <QtCore/QDebug>
 
 QT_BEGIN_NAMESPACE
 
-// Qt running on NaCl/pepper has one screen, which corresponds to the <embed> element
+// Qt running on NaCl/emscripten has one screen, which corresponds to the <embed> element
 // that contains the application instance. Geometry is reported to the instance via
 // DidChangeView. Instance geometry has a position, which is the position of the <embed>
 // element on the page. Screen geometry always has a position of (0, 0). Screen size
-// is equal to instance size. Pepper event geometry is in screen coordinates: relative
+// is equal to instance size. Emscripten event geometry is in screen coordinates: relative
 // to then top-left (0,0). Top-level windows are positioned in screen geometry as usual.
 
-QPepperScreen::QPepperScreen()
-    : m_cursor(new QPepperCursor)
+QEmscriptenScreen::QEmscriptenScreen()
+    : m_cursor(new QEmscriptenCursor)
 {
 }
 
-QRect QPepperScreen::geometry() const
+QRect QEmscriptenScreen::geometry() const
 {
-    return QRect(QPoint(), QPepperInstancePrivate::get()->geometry().size());
+//    return QRect(QPoint(), QEmscriptenInstancePrivate::get()->geometry().size());
+    return QRect(QPoint(), QSize(640, 480));
 }
 
-int QPepperScreen::depth() const { return 32; }
-
-QImage::Format QPepperScreen::format() const { return QImage::Format_ARGB32_Premultiplied; }
-
-qreal QPepperScreen::devicePixelRatio() const
-{
-    return QPepperInstancePrivate::get()->devicePixelRatio();
+int QEmscriptenScreen::depth() const {
+    return 32;
 }
 
-QPlatformCursor *QPepperScreen::cursor() const { return m_cursor.data(); }
+QImage::Format QEmscriptenScreen::format() const {
+    return QImage::Format_ARGB32_Premultiplied;
+}
 
-void QPepperScreen::resizeMaximizedWindows() { QPlatformScreen::resizeMaximizedWindows(); }
+qreal QEmscriptenScreen::devicePixelRatio() const
+{
+//    return QEmscriptenInstancePrivate::get()->devicePixelRatio();
+    return 1.0;
+}
+
+QPlatformCursor *QEmscriptenScreen::cursor() const {
+    return m_cursor.data();
+}
+
+void QEmscriptenScreen::resizeMaximizedWindows() {
+    QPlatformScreen::resizeMaximizedWindows();
+}
 
 QT_END_NAMESPACE

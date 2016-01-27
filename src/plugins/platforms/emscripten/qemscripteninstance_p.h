@@ -33,10 +33,10 @@
 **
 ****************************************************************************/
 
-#ifndef QTPEPPERINSTANCE_P_H
-#define QTPEPPERINSTANCE_P_H
+#ifndef QTEMSCRIPTENINSTANCE_P_H
+#define QTEMSCRIPTENINSTANCE_P_H
 
-#include "qpeppereventtranslator.h"
+#include "qemscripteneventtranslator.h"
 
 #include <QtCore/QHash>
 #include <QtCore/QMutex>
@@ -59,7 +59,7 @@
 
 QT_BEGIN_NAMESPACE
 
-Q_DECLARE_LOGGING_CATEGORY(QT_PLATFORM_PEPPER_INSTANCE)
+Q_DECLARE_LOGGING_CATEGORY(QT_PLATFORM_EMSCRIPTEN_INSTANCE)
 
 // ThreadSafeQueue is a simple thread-safe queue. T must
 // be default-constructible and copyable.
@@ -108,25 +108,25 @@ private:
     bool m_quit;
 };
 
-class QPepperInstance;
-class QPepperIntegration;
+class QEmscriptenInstance;
+class QEmscriptenIntegration;
 
-class QPepperInstancePrivate
+class QEmscriptenInstancePrivate
 {
 public:
-    QPepperInstancePrivate(QPepperInstance *instance);
-    ~QPepperInstancePrivate();
+    QEmscriptenInstancePrivate(QEmscriptenInstance *instance);
+    ~QEmscriptenInstancePrivate();
 
-    static QPepperInstancePrivate *get();
-    static pp::Instance *getPPInstance();
+    static QEmscriptenInstancePrivate *get();
+//    static pp::Instance *getPPInstance();
 
     bool init(int32_t result, uint32_t argc, const QVector<QByteArray> &vargn,
               const QVector<QByteArray> &vargv);
-    void didChangeView(int32_t result, const pp::View &view);
-    void didChangeFocus(int32_t result, bool hasFucus);
-    bool handleInputEvent(int32_t result, const pp::InputEvent &event);
-    bool handleDocumentLoad(int32_t result, const pp::URLLoader &url_loader);
-    void handleMessage(int32_t result, const pp::Var &var_message);
+//    void didChangeView(int32_t result, const pp::View &view);
+//    void didChangeFocus(int32_t result, bool hasFucus);
+//    bool handleInputEvent(int32_t result, const pp::InputEvent &event);
+//    bool handleDocumentLoad(int32_t result, const pp::URLLoader &url_loader);
+//    void handleMessage(int32_t result, const pp::Var &var_message);
 
     // Instance attribute getters
     QRect geometry();
@@ -135,7 +135,7 @@ public:
     qreal cssScale();
 
     // publics:
-    void processCall(pp::CompletionCallback call);
+//    void processCall(pp::CompletionCallback call);
     void scheduleWindowSystemEventsFlush();
     void postMessage(const QByteArray &message);
     void runJavascript(const QByteArray &script);
@@ -151,29 +151,29 @@ public:
 
     void flushCompletedCallback(int32_t);
 
-    QPepperInstance *q;
+    QEmscriptenInstance *q;
 
     bool m_qtStarted;
     bool m_runQtOnThread;
     bool m_useQtMessageLoop;
-    pp::SimpleThread m_qtThread;
+//    pp::SimpleThread m_qtThread;
     pthread_t m_qtThread_pthread; // ##name
-    pp::MessageLoop m_qtMessageLoop;
+//    pp::MessageLoop m_qtMessageLoop;
     ThreadSafeQueue<pp::CompletionCallback> m_qtMessageLoop_pthread; // ##name
 
-    pp::Var m_console;
-    pp::Rect m_currentGeometry;
+//    pp::Var m_console;
+//    pp::Rect m_currentGeometry;
     qreal m_currentCssScale;
     qreal m_currentDeviceScale;
     qreal m_currentDevicePixelRatio;
 
-    pp::Graphics2D *m_context2D;
-    pp::ImageData *m_imageData2D;
+//    pp::Graphics2D *m_context2D;
+//    pp::ImageData *m_imageData2D;
     QImage *m_frameBuffer;
     bool m_inFlush;
     QHash<QByteArray, QPair<QPointer<QObject>, const char *> > m_messageHandlers;
 
-    pp::CompletionCallbackFactory<QPepperInstancePrivate> m_callbackFactory;
+//    pp::CompletionCallbackFactory<QEmscriptenInstancePrivate> m_callbackFactory;
 };
 
 QT_END_NAMESPACE

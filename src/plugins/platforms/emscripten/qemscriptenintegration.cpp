@@ -38,13 +38,13 @@
 // #include "qemscriptenbackingstore.h"
 // #include "qemscriptenclipboard.h"
 // #include "qemscriptencompositor.h"
-// #include "qemscripteneventdispatcher.h"
+ #include "qemscripteneventdispatcher.h"
 // #include "qemscriptenfontdatabase.h"
 // #include "qemscriptenglcontext.h"
-// #include "qemscripteninstance_p.h"
-// #include "qemscriptenscreen.h"
+ #include "qemscripteninstance_p.h"
+ #include "qemscriptenscreen.h"
 // #include "qemscriptenservices.h"
-// #include "qemscriptentheme.h"
+ #include "qemscriptentheme.h"
 // #include "qemscriptenwindow.h"
 
 #include <QtCore/qdebug.h>
@@ -54,6 +54,7 @@
 
 void *QEmscriptenPlatformNativeInterface::nativeResourceForIntegration(const QByteArray &resource)
 {
+    qDebug() << __PRETTY_FUNCTION__;
     // if (resource == "Instance")
         // return QEmscriptenInstancePrivate::getPPInstance();
     return 0;
@@ -61,15 +62,17 @@ void *QEmscriptenPlatformNativeInterface::nativeResourceForIntegration(const QBy
 
 QPlatformIntegration *qt_create_emscripten_integration()
 {
+    qDebug() << __PRETTY_FUNCTION__;
     return QEmscriptenIntegration::create();
 }
 
 QEmscriptenIntegration *QEmscriptenIntegration::create()
 {
-    // if (QEmscriptenInstancePrivate::get() == 0) {
-    //     qFatal("ERROR: QEmscriptenInstance is not created. Use Q_GUI_MAIN instead of main().");
-    //     return 0;
-    // }
+    qDebug() << __PRETTY_FUNCTION__;
+//    if (QEmscriptenInstancePrivate::get() == 0) {
+//        qFatal("ERROR: QEmscriptenInstance is not created. Use Q_GUI_MAIN instead of main().");
+//        return 0;
+//    }
     return new QEmscriptenIntegration();
 }
 
@@ -87,76 +90,92 @@ QEmscriptenIntegration::QEmscriptenIntegration()
     , m_screen(0)
     , m_platformNativeInterface(0)
 {
+    qDebug() << __PRETTY_FUNCTION__;
     globalEmscriptenIntegration = this;
 
     m_screen = new QEmscriptenScreen();
     screenAdded(m_screen);
 
-    m_eventTranslator = new QEmscriptenEventTranslator();
-    QObject::connect(m_eventTranslator, SIGNAL(getWindowAt(QPoint, QWindow **)), this,
-                     SLOT(getWindowAt(QPoint, QWindow **)));
-    QObject::connect(m_eventTranslator, SIGNAL(getKeyWindow(QWindow **)), this,
-                     SLOT(getKeyWindow(QWindow **)));
+//    m_eventTranslator = new QEmscriptenEventTranslator();
+//    QObject::connect(m_eventTranslator, SIGNAL(getWindowAt(QPoint, QWindow **)), this,
+//                     SLOT(getWindowAt(QPoint, QWindow **)));
+//    QObject::connect(m_eventTranslator, SIGNAL(getKeyWindow(QWindow **)), this,
+//                     SLOT(getKeyWindow(QWindow **)));
 }
 
 QEmscriptenIntegration::~QEmscriptenIntegration()
 {
+
+    qDebug() << __PRETTY_FUNCTION__;
     globalEmscriptenIntegration = 0;
-    delete m_platformNativeInterface;
-    delete m_compositor;
-    delete m_eventTranslator;
-    delete m_fontDatabase;
+//    delete m_platformNativeInterface;
+//    delete m_compositor;
+//    delete m_eventTranslator;
+//    delete m_fontDatabase;
 }
 
 bool QEmscriptenIntegration::hasCapability(QPlatformIntegration::Capability cap) const
 {
-    switch (cap) {
-    case ThreadedOpenGL :
-        // Threaded GL is supported when Qt is running on a secondary thread only.
-        return QEmscriptenInstancePrivate::get()->m_runQtOnThread;
-    default:
-        return QPlatformIntegration::hasCapability(cap);
-    }
+    qDebug() << __PRETTY_FUNCTION__;
+//    switch (cap) {
+//    case ThreadedOpenGL :
+//        // Threaded GL is supported when Qt is running on a secondary thread only.
+//        return QEmscriptenInstancePrivate::get()->m_runQtOnThread;
+//    default:
+//        return QPlatformIntegration::hasCapability(cap);
+//    }
+    return QPlatformIntegration::hasCapability(cap);
 }
 
 QPlatformWindow *QEmscriptenIntegration::createPlatformWindow(QWindow *window) const
 {
-    QEmscriptenWindow *platformWindow = new QEmscriptenWindow(window);
-    if (m_topLevelWindow == 0)
-        m_topLevelWindow = platformWindow;
+    qDebug() << __PRETTY_FUNCTION__;
+//    QEmscriptenWindow *platformWindow = new QEmscriptenWindow(window);
+//    if (m_topLevelWindow == 0)
+//        m_topLevelWindow = platformWindow;
 
-    return platformWindow;
+//    return platformWindow;
+    return 0;
 }
 
 QPlatformBackingStore *QEmscriptenIntegration::createPlatformBackingStore(QWindow *window) const
 {
-    QEmscriptenBackingStore *backingStore = new QEmscriptenBackingStore(window);
-    return backingStore;
+    qDebug() << __PRETTY_FUNCTION__;
+//    QEmscriptenBackingStore *backingStore = new QEmscriptenBackingStore(window);
+//    return backingStore;
+//    return QPlatformIntegration::createPlatformBackingStore(window);
+    return 0;
 }
 
 QPlatformOpenGLContext *
 QEmscriptenIntegration::createPlatformOpenGLContext(QOpenGLContext *context) const
 {
-    QEmscriptenGLContext *glContext = new QEmscriptenGLContext();
-    return glContext;
+    qDebug() << __PRETTY_FUNCTION__;
+//    QEmscriptenGLContext *glContext = new QEmscriptenGLContext();
+//    return glContext;
+    return QPlatformIntegration::createPlatformOpenGLContext(context);
 }
 
 QAbstractEventDispatcher *QEmscriptenIntegration::createEventDispatcher() const
 {
+    qDebug() << __PRETTY_FUNCTION__;
     m_eventDispatcher = new QEmscriptenEventDispatcher();
     return m_eventDispatcher;
 }
 
 QPlatformFontDatabase *QEmscriptenIntegration::fontDatabase() const
 {
-    if (m_fontDatabase == 0)
-        m_fontDatabase = new QEmscriptenFontDatabase();
+    qDebug() << __PRETTY_FUNCTION__;
+//    if (m_fontDatabase == 0)
+//        m_fontDatabase = new QEmscriptenFontDatabase();
 
-    return m_fontDatabase;
+//    return m_fontDatabase;
+    return QPlatformIntegration::fontDatabase();
 }
 
 QPlatformClipboard *QEmscriptenIntegration::clipboard() const
 {
+    qDebug() << __PRETTY_FUNCTION__;
     //  WIP: disabled.
     //    if (m_clipboard == 0)
     //        m_clipboard = new QEmscriptenClipboard();
@@ -166,21 +185,26 @@ QPlatformClipboard *QEmscriptenIntegration::clipboard() const
 
 QPlatformNativeInterface *QEmscriptenIntegration::nativeInterface() const
 {
-    if (m_platformNativeInterface == 0)
-        m_platformNativeInterface = new QEmscriptenPlatformNativeInterface();
+    qDebug() << __PRETTY_FUNCTION__;
+//    if (m_platformNativeInterface == 0)
+//        m_platformNativeInterface = new QEmscriptenPlatformNativeInterface();
 
-    return m_platformNativeInterface;
+//    return m_platformNativeInterface;
+    return QPlatformIntegration::nativeInterface();
 }
 
 QPlatformServices *QEmscriptenIntegration::services() const
 {
-    if (m_services == 0)
-        m_services = new QEmscriptenServices();
-    return m_services;
+    qDebug() << __PRETTY_FUNCTION__;
+//    if (m_services == 0)
+//        m_services = new QEmscriptenServices();
+//    return m_services;
+    return QPlatformIntegration::services();
 }
 
 QVariant QEmscriptenIntegration::styleHint(StyleHint hint) const
 {
+    qDebug() << __PRETTY_FUNCTION__;
     switch (hint) {
     case ShowIsFullScreen:
         return true;
@@ -191,72 +215,88 @@ QVariant QEmscriptenIntegration::styleHint(StyleHint hint) const
 
 Qt::WindowState QEmscriptenIntegration::defaultWindowState(Qt::WindowFlags) const
 {
+    qDebug() << __PRETTY_FUNCTION__;
     return Qt::WindowFullScreen;
 }
 
 QStringList QEmscriptenIntegration::themeNames() const
 {
+    qDebug() << __PRETTY_FUNCTION__;
     return QStringList() << QStringLiteral("emscripten");
 }
 
 QPlatformTheme *QEmscriptenIntegration::createPlatformTheme(const QString &name) const
 {
+    qDebug() << __PRETTY_FUNCTION__;
     if (name == QStringLiteral("emscripten"))
         return new QEmscriptenTheme;
 
     return 0;
 }
 
-QEmscriptenCompositor *QEmscriptenIntegration::emscriptenCompositor() const { return m_compositor; }
+QEmscriptenCompositor *QEmscriptenIntegration::emscriptenCompositor() const {
+    qDebug() << __PRETTY_FUNCTION__;
+    return m_compositor;
+}
 
 QEmscriptenEventTranslator *QEmscriptenIntegration::emscriptenEventTranslator() const
 {
+    qDebug() << __PRETTY_FUNCTION__;
     return m_eventTranslator;
 }
 
-void QEmscriptenIntegration::processEvents() { m_eventDispatcher->processEvents(); }
+void QEmscriptenIntegration::processEvents() {
+    qDebug() << __PRETTY_FUNCTION__;
+//    m_eventDispatcher->processEvents();
+}
 
 void QEmscriptenIntegration::resizeScreen(QSize size, qreal devicePixelRatio)
 {
+    qDebug() << __PRETTY_FUNCTION__;
     // Set the frame buffer on the compositor
-    if (m_compositor)
-        m_compositor->beginResize(size, devicePixelRatio);
+//    if (m_compositor)
+//        m_compositor->beginResize(size, devicePixelRatio);
 
-    // Send the screen geometry change to Qt, resize windows.
-    QRect screenRect(QPoint(0, 0), size);
-    m_screen->resizeMaximizedWindows();
-    QWindowSystemInterface::handleScreenGeometryChange(m_screen->screen(),
-                                                       screenRect,  // new geometry
-                                                       screenRect); // new available geometry
-    QWindowSystemInterface::flushWindowSystemEvents();
+//    // Send the screen geometry change to Qt, resize windows.
+//    QRect screenRect(QPoint(0, 0), size);
+//    m_screen->resizeMaximizedWindows();
+//    QWindowSystemInterface::handleScreenGeometryChange(m_screen->screen(),
+//                                                       screenRect,  // new geometry
+//                                                       screenRect); // new available geometry
+//    QWindowSystemInterface::flushWindowSystemEvents();
 
-    // Let Qt process the resize events;
-    if (m_eventDispatcher)
-        m_eventDispatcher->processEvents();
+//    // Let Qt process the resize events;
+//    if (m_eventDispatcher)
+//        m_eventDispatcher->processEvents();
 
-    // End resize and composit.
-    if (m_compositor)
-        m_compositor->endResize();
+//    // End resize and composit.
+//    if (m_compositor)
+//        m_compositor->endResize();
 }
 
-QEmscriptenWindow *QEmscriptenIntegration::topLevelWindow() const { return m_topLevelWindow; }
+QEmscriptenWindow *QEmscriptenIntegration::topLevelWindow() const {
+    qDebug() << __PRETTY_FUNCTION__;
+    return m_topLevelWindow;
+}
 
 void QEmscriptenIntegration::getWindowAt(const QPoint &point, QWindow **window)
 {
-    if (m_compositor)
-        *window = m_compositor->windowAt(point);
-    else if (m_topLevelWindow)
-        *window = m_topLevelWindow->window();
-    else
-        *window = 0;
+    qDebug() << __PRETTY_FUNCTION__;
+//    if (m_compositor)
+//        *window = m_compositor->windowAt(point);
+//    else if (m_topLevelWindow)
+//        *window = m_topLevelWindow->window();
+//    else
+//        *window = 0;
 }
 
 void QEmscriptenIntegration::getKeyWindow(QWindow **window)
 {
-    if (m_compositor)
-        *window = m_compositor->keyWindow();
-    else if (m_topLevelWindow)
-        *window = m_topLevelWindow->window();
-    else
-        *window = 0;
+    qDebug() << __PRETTY_FUNCTION__;
+//    if (m_compositor)
+//        *window = m_compositor->keyWindow();
+//    else if (m_topLevelWindow)
+//        *window = m_topLevelWindow->window();
+//    else
+//        *window = 0;
 }

@@ -1032,8 +1032,13 @@ static void init_platform(const QString &pluginArgument, const QString &platform
 #ifdef Q_OS_NACL
     // On NaCl the pepper platform "plugin" is included in the QtGui build
     // to make bootstrapping easier.
+#ifdef Q_OS_NACL_EMSCRIPTEN
+    extern QPlatformIntegration *qt_create_emscripten_integration();
+    QGuiApplicationPrivate::platform_integration = qt_create_emscripten_integration();
+#else
     extern QPlatformIntegration *qt_create_pepper_integration();
     QGuiApplicationPrivate::platform_integration = qt_create_pepper_integration();
+#endif
 #else
     QGuiApplicationPrivate::platform_integration = QPlatformIntegrationFactory::create(name, arguments, argc, argv, platformPluginPath);
 #endif

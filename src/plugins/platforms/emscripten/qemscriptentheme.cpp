@@ -33,37 +33,41 @@
 **
 ****************************************************************************/
 
-#include "qpeppertheme.h"
+#include "qemscriptentheme.h"
 
-#include "qpepperinstance_p.h"
+#include "qemscripteninstance_p.h"
 
 #include <QtCore/QStringList>
 #include <QtCore/QVariant>
 
 QT_BEGIN_NAMESPACE
 
-QPepperTheme::QPepperTheme()
+QEmscriptenTheme::QEmscriptenTheme()
     : m_keyboardScheme(QPlatformTheme::X11KeyboardScheme)
 {
+    qDebug() << __PRETTY_FUNCTION__;
     // Look at navigator.appVersion to get the host OS.
     // ## These calls to javascript are async, which means m_keyboardScheme
     // may not be set correctly during startup before handleGetAppVersionMessage
     // is called.
 
-    QPepperInstancePrivate *instance = QPepperInstancePrivate::get();
-    instance->registerMessageHandler("qtGetAppVersion", this, "handleGetAppVersionMessage");
-    const char *getAppVersionsScript
-        = "this.qtMessageHandlers[\"qtGetAppVersion\"] = function(url) { "
-          "    embed.postMessage(\"qtGetAppVersion: \"  + navigator.appVersion);"
-          "}";
-    instance->runJavascript(getAppVersionsScript);
-    instance->postMessage("qtGetAppVersion: ");
+//    QEmscriptenInstancePrivate *instance = QEmscriptenInstancePrivate::get();
+//    instance->registerMessageHandler("qtGetAppVersion", this, "handleGetAppVersionMessage");
+//    const char *getAppVersionsScript
+//        = "this.qtMessageHandlers[\"qtGetAppVersion\"] = function(url) { "
+//          "    embed.postMessage(\"qtGetAppVersion: \"  + navigator.appVersion);"
+//          "}";
+//    instance->runJavascript(getAppVersionsScript);
+//    instance->postMessage("qtGetAppVersion: ");
 }
 
-QPepperTheme::~QPepperTheme() {}
+QEmscriptenTheme::~QEmscriptenTheme() {
+    qDebug() << __PRETTY_FUNCTION__;
+}
 
-QVariant QPepperTheme::themeHint(ThemeHint hint) const
+QVariant QEmscriptenTheme::themeHint(ThemeHint hint) const
 {
+    qDebug() << __PRETTY_FUNCTION__;
     switch (hint) {
     case QPlatformTheme::StyleNames:
         return QStringList(QStringLiteral("fusion"));
@@ -75,8 +79,9 @@ QVariant QPepperTheme::themeHint(ThemeHint hint) const
     return QPlatformTheme::themeHint(hint);
 }
 
-void QPepperTheme::handleGetAppVersionMessage(const QByteArray &message)
+void QEmscriptenTheme::handleGetAppVersionMessage(const QByteArray &message)
 {
+    qDebug() << __PRETTY_FUNCTION__;
     if (message.contains("OS X"))
         m_keyboardScheme = QPlatformTheme::MacKeyboardScheme;
     else if (message.contains("Win"))

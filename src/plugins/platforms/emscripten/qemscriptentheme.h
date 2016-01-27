@@ -33,20 +33,20 @@
 **
 ****************************************************************************/
 
-#ifndef QPEPPERTHEME_H
-#define QPEPPERTHEME_H
+#ifndef QEMSCRIPTENTHEME_H
+#define QEMSCRIPTENTHEME_H
 
 #include <QtCore/QObject>
 #include <qpa/qplatformtheme.h>
 
 QT_BEGIN_NAMESPACE
 
-class QPepperTheme : public QObject, public QPlatformTheme
+class QEmscriptenTheme : public QObject, public QPlatformTheme
 {
     Q_OBJECT
 public:
-    QPepperTheme();
-    ~QPepperTheme();
+    QEmscriptenTheme();
+    ~QEmscriptenTheme();
 
     QVariant themeHint(ThemeHint hint) const Q_DECL_OVERRIDE;
 

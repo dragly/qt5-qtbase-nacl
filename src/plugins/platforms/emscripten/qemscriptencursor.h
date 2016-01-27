@@ -33,21 +33,21 @@
 **
 ****************************************************************************/
 
-#ifndef QPEPPERCURSOR_H
-#define QPEPPERCURSOR_H
+#ifndef QEMSCRIPTENCURSOR_H
+#define QEMSCRIPTENCURSOR_H
 
 #include <QtCore/QLoggingCategory>
 #include <qpa/qplatformcursor.h>
 
 QT_BEGIN_NAMESPACE
 
-Q_DECLARE_LOGGING_CATEGORY(QT_PLATFORM_PEPPER_CURSOR);
+Q_DECLARE_LOGGING_CATEGORY(QT_PLATFORM_EMSCRIPTEN_CURSOR)
 
-class QPepperCursor : public QPlatformCursor
+class QEmscriptenCursor : public QPlatformCursor
 {
 public:
-    QPepperCursor();
-    ~QPepperCursor();
+    QEmscriptenCursor();
+    ~QEmscriptenCursor();
     void changeCursor(QCursor *cursor, QWindow *window);
 };
 

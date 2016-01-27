@@ -33,8 +33,8 @@
 **
 ****************************************************************************/
 
-#ifndef QPEPPERSCREEN_H
-#define QPEPPERSCREEN_H
+#ifndef QEMSCRIPTENSCREEN_H
+#define QEMSCRIPTENSCREEN_H
 
 #include <QtCore/QScopedPointer>
 #include <qpa/qplatformscreen.h>
@@ -42,10 +42,10 @@
 QT_BEGIN_NAMESPACE
 
 class QPlatformCursor;
-class QPepperScreen : public QPlatformScreen
+class QEmscriptenScreen : public QPlatformScreen
 {
 public:
-    QPepperScreen();
+    QEmscriptenScreen();
 
     QRect geometry() const Q_DECL_OVERRIDE;
     int depth() const Q_DECL_OVERRIDE;

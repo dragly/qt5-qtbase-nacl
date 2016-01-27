@@ -5,45 +5,45 @@
 INCLUDEPATH += $$PWD
 
 HEADERS += \
-#    $$PWD/qemscriptenintegration.h \
+    $$PWD/qemscriptenintegration.h \
 #           $$PWD/qemscriptenbackingstore.h \
 #           $$PWD/qemscriptenclipboard.h \
 #           $$PWD/qemscriptencompositor.h \
-#           $$PWD/qemscriptencursor.h \
-#           $$PWD/qemscripteneventdispatcher.h \
+           $$PWD/qemscriptencursor.h \
+           $$PWD/qemscripteneventdispatcher.h \
 #           $$PWD/qemscripteneventtranslator.h \
 #           $$PWD/qemscriptenfontdatabase.h \
 #           $$PWD/qemscriptenfontengine.h \
 #           $$PWD/qemscriptenglcontext.h \
 #           $$PWD/qemscriptenhelpers.h \
 #           $$PWD/qemscriptenhelpers.h \
-#           $$PWD/qemscripteninstance_p.h \
+           $$PWD/qemscripteninstance_p.h \
 #           $$PWD/qemscriptenintegration.h \
 #           $$PWD/qemscriptenmodule_p.h \
 #           $$PWD/qemscriptenwindow.h \
-#           $$PWD/qemscriptenscreen.h \
+           $$PWD/qemscriptenscreen.h \
 #           $$PWD/qemscriptenservices.h \
-#           $$PWD/qemscriptentheme.h \
+           $$PWD/qemscriptentheme.h \
 
 SOURCES += \
            $$PWD/qemscriptenpluginmain.cpp \
 #           $$PWD/qemscriptenbackingstore.cpp \
 #           $$PWD/qemscriptenclipboard.cpp \
 #           $$PWD/qemscriptencompositor.cpp \
-#           $$PWD/qemscriptencursor.cpp \
-#           $$PWD/qemscripteneventdispatcher.cpp \
+           $$PWD/qemscriptencursor.cpp \
+           $$PWD/qemscripteneventdispatcher.cpp \
 #           $$PWD/qemscripteneventtranslator.cpp \
 #           $$PWD/qemscriptenfontdatabase.cpp \
 #           $$PWD/qemscriptenfontengine.cpp \
 #           $$PWD/qemscriptenglcontext.cpp \
 #           $$PWD/qemscriptenhelpers.cpp \
-#           $$PWD/qemscripteninstance_p.cpp \
-#           $$PWD/qemscriptenintegration.cpp \
+           $$PWD/qemscripteninstance_p.cpp \
+           $$PWD/qemscriptenintegration.cpp \
 #           $$PWD/qemscriptenmodule_p.cpp \
 #           $$PWD/qemscriptenpluginmain.cpp \
-#           $$PWD/qemscriptenscreen.cpp \
+           $$PWD/qemscriptenscreen.cpp \
 #           $$PWD/qemscriptenservices.cpp \
-#           $$PWD/qemscriptentheme.cpp \
+           $$PWD/qemscriptentheme.cpp \
 #           $$PWD/qemscriptenwindow.cpp \
 
 RESOURCES += $$PWD/../../../../lib/fonts/naclfonts.qrc
