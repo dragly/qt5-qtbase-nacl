@@ -5,6 +5,13 @@
 // TODO(ncbray): re-enable once Emscripten stops including code with octal values.
 //"use strict";
 
+var ENVIRONMENT_IS_PTHREAD; // is set to true in pthread-main.js if we are in a worker
+if(!ENVIRONMENT_IS_PTHREAD) { 
+  
+var doCreateInstance = function() {
+    console.log("doCreateInstance should be set by loadnacl.js");
+}
+
 var clamp = function(value, min, max) {
   if (value < min) {
     return min;
@@ -309,7 +316,7 @@ var Module = {
       }
     }
     declaredInterfaces = [];
-    instanceToCreate();
+    doCreateInstance();
   }
 };
 
@@ -984,3 +991,5 @@ var _GetBrowserInterface = function(interface_name) {
   }
   return inf;
 };
+
+}

@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+var ENVIRONMENT_IS_PTHREAD; // is set to true in pthread-main.js if we are in a worker
+if(!ENVIRONMENT_IS_PTHREAD) { 
+
 (function() {
 
   // (GLenum) => void
@@ -1386,3 +1389,5 @@
 // UniformMatrix2fv: Cannot deal with overloads
 // UniformMatrix3fv: Cannot deal with overloads
 // 94:48
+
+}
