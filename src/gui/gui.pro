@@ -49,18 +49,10 @@ include(animation/animation.pri)
 include(itemmodels/itemmodels.pri)
 
 # Include the Pepper "plugin" into the QtGui build on native client.
-# TODO This doesn't react on the config being unset (I thought it would by changing the qmake mkspecs file)
-# needs to be added back
 nacl {
     include($$PWD/../plugins/platforms/pepper/pepper.pri)
     include($$PWD/platforms/pepper/pepper.pri)
 }
-
-# Include the Emscripten "plugin" into the QtGui build on emscripten
-#emscripten {
-#    include($$PWD/../plugins/platforms/emscripten/emscripten.pri)
-#    include($$PWD/platforms/emscripten/emscripten.pri)
-#}
 
 QMAKE_LIBS += $$QMAKE_LIBS_GUI
 

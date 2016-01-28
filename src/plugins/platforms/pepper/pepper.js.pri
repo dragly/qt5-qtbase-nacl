@@ -67,7 +67,7 @@ SOURCES += \
 
 # libppapi (stub)
 SOURCES += \
-    $${PWD}/3rdparty/pepper.js/stub.cc\
+    $${PWD}/3rdparty/pepper.js/stub.cc
     # rest of libppapi is implemented in JavasScript and added to the build
     # with '--pre-js' at link time.
 

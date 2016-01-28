@@ -640,11 +640,7 @@ int ffsll(quint64 i)
 # define ffsll __builtin_ffsll
 #endif
 
-#ifdef Q_OS_NACL_NEWLIB
-#  define ffsll __builtin_ffsll
-#endif
-
-#ifdef EMSCRIPTEN 
+#if defined(Q_OS_NACL_NEWLIB) || defined(Q_OS_NACL_EMSCRIPTEN)
 #  define ffsll __builtin_ffsll
 #endif
 
