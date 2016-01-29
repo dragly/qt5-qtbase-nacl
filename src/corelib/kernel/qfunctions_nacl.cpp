@@ -200,7 +200,6 @@ int unsetenv(const char *name)
 
 } // Extern C
 
-#ifndef Q_OS_NACL_EMSCRIPTEN
 int select(int, fd_set *, fd_set *, fd_set *, struct timeval *)
 {
     return 0;
@@ -210,7 +209,6 @@ int pselect(int nfds, fd_set * readfds, fd_set * writefds, fd_set * errorfds, co
 {
     return 0;
 }
-#endif
 
 #if defined(Q_OS_NACL_EMSCRIPTEN) && !defined(__EMSCRIPTEN_PTHREADS__)
 int pthread_setcancelstate(int state, int *oldstate)
