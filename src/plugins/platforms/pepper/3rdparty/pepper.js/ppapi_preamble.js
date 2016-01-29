@@ -103,6 +103,8 @@ var ARRAY_RESOURCE = 21;
 var DICTIONARY_RESOURCE = 22;
 var WEB_SOCKET_RESOURCE = 23;
 
+var MESSAGE_LOOP_RESOURCE = 24;
+
 var ResourceManager = function() {
   this.lut = {};
   this.uid = 1;

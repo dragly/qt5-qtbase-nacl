@@ -45,6 +45,7 @@
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QOpenGLPaintDevice>
 #include <QtGui/QPainter>
+#include <QDebug>
 
 //! [1]
 OpenGLWindow::OpenGLWindow(QWindow *parent)
@@ -129,10 +130,13 @@ void OpenGLWindow::renderNow()
         m_context->setFormat(requestedFormat());
         m_context->create();
 
+        qDebug() << "Context in c++ is " << m_context;
+
         needsInitialize = true;
     }
 
-    m_context->makeCurrent(this);
+    bool currented = m_context->makeCurrent(this);
+    qDebug() << "Currented: " << currented;
 
     if (needsInitialize) {
         initializeOpenGLFunctions();

@@ -8,6 +8,7 @@ if(!ENVIRONMENT_IS_PTHREAD) {
 (function() {
 
   var getContext = function(c, params) {
+    // TODO we bypass this with Browser.createContext, except for in the test
     return c.getContext('webgl', params) || c.getContext("experimental-webgl", params);
   };
 
@@ -97,7 +98,7 @@ if(!ENVIRONMENT_IS_PTHREAD) {
     return resources.register(GRAPHICS_3D_RESOURCE, {
       canvas: canvas,
       bound: false,
-      ctx: getContext(canvas, {
+      ctx: Browser.createContext(canvas, true, true, {
         "alpha": alpha_size > 0,
         "depth": depth_size > 0,
         "stencil": stencil_size > 0,

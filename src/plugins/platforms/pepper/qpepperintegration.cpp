@@ -214,7 +214,9 @@ QPepperEventTranslator *QPepperIntegration::pepperEventTranslator() const
     return m_eventTranslator;
 }
 
-void QPepperIntegration::processEvents() { m_eventDispatcher->processEvents(); }
+void QPepperIntegration::processEvents() {
+    m_eventDispatcher->processEvents();
+}
 
 void QPepperIntegration::resizeScreen(QSize size, qreal devicePixelRatio)
 {

@@ -150,6 +150,7 @@ if(!ENVIRONMENT_IS_PTHREAD) {
       return;
     }
     var _data = HEAP8.subarray(data, data + size);
+    _data = new Int8Array(_data);
     _context.ctx.bufferData(target, _data, usage);
   }
   var OpenGLES2_BufferSubData = function(context, target, offset, size, data) {
@@ -564,7 +565,51 @@ if(!ENVIRONMENT_IS_PTHREAD) {
   }
 
   var OpenGLES2_GetProgramiv = function(context, program, pname, params) {
-    throw "OpenGLES2_GetProgramiv not implemented";
+    console.log("OpenGLES2_GetProgramiv " + pname)
+    console.trace()
+    if(pname == 35716 || pname == 35720) { 
+      // 35716 = GL_INFO_LOG_LENGTH (0x8B84)
+      // 35720 = GL_SHADER_SOURCE_LENGTH (0x8B88)
+      // These are not allowed in WebGL, but are allowed in GLES.
+      // Return 0 so that legacy code thinks there is no log or source to print
+      var result = 0
+      setValue(params, result, 'i32');
+      return
+    }
+    var _context = resources.resolve(context, GRAPHICS_3D_RESOURCE);
+    if (_context === undefined) {
+      return 0;
+    }
+    var _program = resources.resolve(program, PROGRAM_RESOURCE);
+    if (_program === undefined) {
+      return 0;
+    }
+    var result = _context.ctx.getProgramParameter(_program.native, pname);
+    switch(pname) {
+    case _context.ctx.DELETE_STATUS:
+      setValue(params, result, 'i8');
+      break;
+    case _context.ctx.LINK_STATUS:
+      setValue(params, result, 'i8');
+      break;
+    case _context.ctx.VALIDATE_STATUS:
+      setValue(params, result, 'i8');
+      break;
+    case _context.ctx.ATTACHED_SHADERS:
+      setValue(params, result, 'i32');
+      break;
+    case _context.ctx.ACTIVE_ATTRIBUTES:
+      setValue(params, result, 'i32');
+      break;
+    case _context.ctx.ACTIVE_UNIFORMS:
+      setValue(params, result, 'i32');
+      break;
+    default:
+      console.warn("OpenGLES2_GetProgramiv unknown parameter type, assume i32")
+      console.trace()
+      setValue(params, result, 'i32');
+      break;
+    }
   }
 
   var OpenGLES2_GetProgramInfoLog = function(context, program, bufsize, length, infolog) {
@@ -576,7 +621,18 @@ if(!ENVIRONMENT_IS_PTHREAD) {
   }
 
   var OpenGLES2_GetShaderiv = function(context, shader, pname, params) {
-    throw "OpenGLES2_GetShaderiv not implemented";
+    console.log("OpenGLES2_GetShaderiv")
+    console.trace()
+    var _context = resources.resolve(context, GRAPHICS_3D_RESOURCE);
+    if (_context === undefined) {
+      return 0;
+    }
+    var _shader = resources.resolve(shader, SHADER_RESOURCE);
+    if (_shader === undefined) {
+      return 0;
+    }
+    var result = _context.ctx.getShaderParameter(_shader.native, pname);
+    setValue(params, result, 'i32');
   }
 
   var OpenGLES2_GetShaderInfoLog = function(context, shader, bufsize, length, infolog) {
@@ -1094,11 +1150,21 @@ if(!ENVIRONMENT_IS_PTHREAD) {
       return;
     }
     var _value = HEAPF32.subarray((value>>2), (value>>2) + 16 * count);
+    // TODO: This is temporary to cast SharedFloat32Array to a Float32Array. Remove this once https://bugzilla.mozilla.org/show_bug.cgi?id=1205390 lands.
+    _value = new Float32Array(_value);
     _context.ctx.uniformMatrix4fv(_location.native, transpose, _value);
   }
   // ppapi (GLuint) => void
   // webgl (WebGLProgram) => void
   var OpenGLES2_UseProgram = function(context, program) {
+    if(program === 0) {
+      // TODO Is useprogram(0) okay to call?
+      console.log("OpenGLES2_UseProgram: Requested to use program 0. "
+                + "This is not a defined operation in WebGL, but in legacy "
+                + "code it is a request to release the program. "
+                + "Nothing will be done when calling glUseProgram(0).")
+      return
+    }
     var _context = resources.resolve(context, GRAPHICS_3D_RESOURCE);
     if (_context === undefined) {
       return;
@@ -1179,6 +1245,8 @@ if(!ENVIRONMENT_IS_PTHREAD) {
   // ppapi (GLuint, GLint, GLenum, GLboolean, GLsizei, const void*) => void
   // webgl (GLuint, GLint, GLenum, GLboolean, GLsizei, GLintptr) => void
   var OpenGLES2_VertexAttribPointer = function(context, indx, size, type, normalized, stride, ptr) {
+    console.log(context+ " " + indx+ " " + size+ " " + type+ " " + normalized+ " " + stride+ " " + ptr)
+    console.trace()
     var _context = resources.resolve(context, GRAPHICS_3D_RESOURCE);
     if (_context === undefined) {
       return;

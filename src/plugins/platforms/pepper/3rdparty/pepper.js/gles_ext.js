@@ -215,6 +215,29 @@ if(!ENVIRONMENT_IS_PTHREAD) {
     OpenGLES2Query_GetQueryivEXT,
     OpenGLES2Query_GetQueryObjectuivEXT,
   ]);
+  
+  var OpenGLES2VertexArrayObject_BindVertexArrayOES = function(context, x, y, width, height) {
+    throw "OpenGLES2_BindVertexArrayOES is not implemented"
+  }
+  var OpenGLES2VertexArrayObject_DeleteVertexArrayOES = function(context, x, y, width, height) {
+    throw "OpenGLES2_BindVertexArrayOES is not implemented"
+  }
+  var OpenGLES2VertexArrayObject_GenVertexArrayOES = function(context, x, y, width, height) {
+    throw "OpenGLES2_BindVertexArrayOES is not implemented"
+  }
+  var OpenGLES2VertexArrayObject_IsVertexArrayOES = function(context, x, y, width, height) {
+    throw "OpenGLES2_BindVertexArrayOES is not implemented"
+  }
+
+  registerInterface("PPB_OpenGLES2VertexArrayObject;1.0", [
+    OpenGLES2VertexArrayObject_BindVertexArrayOES,
+    OpenGLES2VertexArrayObject_DeleteVertexArrayOES,
+    OpenGLES2VertexArrayObject_GenVertexArrayOES,
+    OpenGLES2VertexArrayObject_IsVertexArrayOES
+  ]);
+
+  registerInterface("PPB_OpenGLES2DrawBuffers(Dev);1.0", [
+  ]);
 
 })();
 

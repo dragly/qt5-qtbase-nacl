@@ -263,6 +263,9 @@ bool QOpenGLShaderPrivate::compile(QOpenGLShader *q)
 
     // Get compilation status
     glfuncs->glGetShaderiv(shader, GL_COMPILE_STATUS, &value);
+
+    qDebug() << "QOpenGLShaderPrivate value is" << value;
+
     compiled = (value != 0);
 
     if (!compiled) {

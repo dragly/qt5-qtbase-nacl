@@ -38,6 +38,7 @@
 **
 ****************************************************************************/
 
+#include <QtGui>
 #include <QOpenGLWindow>
 #include <QScreen>
 #include <QPainter>
@@ -180,9 +181,9 @@ void OpenGLWindow::setAnimating(bool enabled)
     }
 }
 
-int main(int argc, char **argv)
+void app_init(int argc, char **argv)
 {
-    QGuiApplication app(argc, argv);
+    // QGuiApplication app(argc, argv);
 
     OpenGLWindow window;
     QSurfaceFormat fmt;
@@ -191,7 +192,11 @@ int main(int argc, char **argv)
     window.setFormat(fmt);
     window.showMaximized();
 
-    return app.exec();
+    // return app.exec();
 }
+
+void app_exit() {}
+
+Q_GUI_MAIN(app_init, app_exit)
 
 #include "main.moc"

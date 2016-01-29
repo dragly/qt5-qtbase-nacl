@@ -118,6 +118,45 @@ if(!ENVIRONMENT_IS_PTHREAD) {
     Messaging_PostMessage
   ]);
 
+  var MessageLoop_InstanceHandle = function(instance) {
+    console.warn("MessageLoop_InstanceHandle is not implemented")
+    return 1;
+  };
+
+  var MessageLoop_GetForMainThread = function() {
+    console.warn("MessageLoop_GetForMainThread is not implemented")
+    return 1;
+  };
+
+  var MessageLoop_GetCurrent = function() {
+    console.warn("MessageLoop_GetCurrent is not implemented")
+    return 1;
+  };
+
+  var MessageLoop_Run = function(resource) {
+    console.warn("MessageLoop_Run is not implemented " + resource)
+    return 1;
+  };
+
+  var MessageLoop_PostWork = function(resource, callback, delay_ms) {
+    console.warn("MessageLoop_PostWork is not implemented " + resource)
+    return 2;
+  };
+
+  var MessageLoop_PostQuit = function(resource, should_destroy) {
+    console.warn("MessageLoop_PostQuit is not implemented " + resource)
+    return 1;
+  };
+
+  registerInterface("PPB_MessageLoop;1.0", [
+    MessageLoop_InstanceHandle,
+    MessageLoop_GetForMainThread,
+    MessageLoop_GetCurrent,
+    MessageLoop_Run,
+    MessageLoop_PostWork,
+    MessageLoop_PostQuit,
+  ]);
+
   var Var_AddRef = function(v) {
     if (glue.isRefCountedVarType(glue.getVarType(v))) {
       resources.addRef(glue.getVarUID(v));

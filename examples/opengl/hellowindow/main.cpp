@@ -45,11 +45,11 @@
 #include <QGuiApplication>
 #include <QScreen>
 #include <QThread>
+#include <QtGui>
 
-int main(int argc, char *argv[])
+void app_init(int argc, char *argv[])
 {
-    QGuiApplication app(argc, argv);
-
+//    QGuiApplication app(argc, argv);
     // Some platforms can only have one window per screen. Therefore we need to differentiate.
     const bool multipleWindows = QGuiApplication::arguments().contains(QStringLiteral("--multiple"));
     const bool multipleScreens = QGuiApplication::arguments().contains(QStringLiteral("--multiscreen"));
@@ -67,77 +67,30 @@ int main(int argc, char *argv[])
     QSize windowSize(400, 320);
     int delta = 40;
 
-    QList<QWindow *> windows;
     QSharedPointer<Renderer> rendererA(new Renderer(format));
 
     HelloWindow *windowA = new HelloWindow(rendererA);
     windowA->setGeometry(QRect(center, windowSize).translated(-windowSize.width() - delta / 2, 0));
     windowA->setTitle(QStringLiteral("Thread A - Context A"));
     windowA->setVisible(true);
-    windows.prepend(windowA);
-
-    QList<QThread *> renderThreads;
-    if (multipleWindows) {
-        QSharedPointer<Renderer> rendererB(new Renderer(format, rendererA.data()));
-
-        QThread *renderThread = new QThread;
-        rendererB->moveToThread(renderThread);
-        renderThreads << renderThread;
-
-        HelloWindow *windowB = new HelloWindow(rendererA);
-        windowB->setGeometry(QRect(center, windowSize).translated(delta / 2, 0));
-        windowB->setTitle(QStringLiteral("Thread A - Context A"));
-        windowB->setVisible(true);
-        windows.prepend(windowB);
-
-        HelloWindow *windowC = new HelloWindow(rendererB);
-        windowC->setGeometry(QRect(center, windowSize).translated(-windowSize.width() / 2, windowSize.height() + delta));
-        windowC->setTitle(QStringLiteral("Thread B - Context B"));
-        windowC->setVisible(true);
-        windows.prepend(windowC);
-    }
-    if (multipleScreens) {
-        for (int i = 1; i < QGuiApplication::screens().size(); ++i) {
-            QScreen *screen = QGuiApplication::screens().at(i);
-            QSharedPointer<Renderer> renderer(new Renderer(format, rendererA.data(), screen));
-
-            QThread *renderThread = new QThread;
-            renderer->moveToThread(renderThread);
-            renderThreads.prepend(renderThread);
-
-            QRect screenGeometry = screen->availableGeometry();
-            QPoint center = screenGeometry.center();
-
-            QSize windowSize = screenGeometry.size() * 0.8;
-
-            HelloWindow *window = new HelloWindow(renderer, screen);
-            window->setGeometry(QRect(center, windowSize).translated(-windowSize.width() / 2, -windowSize.height() / 2));
-
-            QChar id = QChar('B' + i);
-            window->setTitle(QStringLiteral("Thread ") + id + QStringLiteral(" - Context ") + id);
-            window->setVisible(true);
-            windows.prepend(window);
-        }
-    }
-
-    for (int i = 0; i < renderThreads.size(); ++i) {
-        QObject::connect(qGuiApp, &QGuiApplication::lastWindowClosed, renderThreads.at(i), &QThread::quit);
-        renderThreads.at(i)->start();
-    }
-
-    // Quit after 10 seconds. For platforms that do not have windows that are closeable.
-    if (QCoreApplication::arguments().contains(QStringLiteral("--timeout")))
-        QTimer::singleShot(10000, qGuiApp, &QCoreApplication::quit);
-
-    const int exitValue = app.exec();
-
-    for (int i = 0; i < renderThreads.size(); ++i) {
-        renderThreads.at(i)->quit(); // some platforms may not have windows to close so ensure quit()
-        renderThreads.at(i)->wait();
-    }
-
-    qDeleteAll(windows);
-    qDeleteAll(renderThreads);
-
-    return exitValue;
+    windowA->showFullScreen();
 }
+
+void app_exit() {}
+
+#ifdef Q_OS_NACL
+Q_GUI_MAIN(app_init, app_exit)
+#else
+int main(int argc, char **argv)
+{
+    qDebug() << "App";
+    QGuiApplication app(argc, argv);
+    qDebug() << "Init";
+    app_init(argc, argv);
+    qDebug() << "exec";
+    app.exec();
+    qDebug() << "exit";
+    app_exit();
+    return 0;
+}
+#endif

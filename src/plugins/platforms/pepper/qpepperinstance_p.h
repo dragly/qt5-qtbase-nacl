@@ -75,6 +75,7 @@ public:
 
     void enqueue(const T &item)
     {
+        qDebug() << "Enqueue";
         QMutexLocker lock(&m_lock);
         m_queue.enqueue(item);
         m_nextEvent.wakeAll();
@@ -82,6 +83,7 @@ public:
 
     T dequeue()
     {
+        qDebug() << "Woop";
         QMutexLocker lock(&m_lock);
         while (!m_quit && m_queue.isEmpty())
             m_nextEvent.wait(&m_lock);

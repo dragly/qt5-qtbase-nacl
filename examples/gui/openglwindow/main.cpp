@@ -40,6 +40,7 @@
 
 #include "openglwindow.h"
 
+#include <QtGui>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QMatrix4x4>
 #include <QtGui/QOpenGLShaderProgram>
@@ -73,9 +74,34 @@ TriangleWindow::TriangleWindow()
 //! [1]
 
 //! [2]
+void app_init(int argc, char **argv)
+{
+//    QGuiApplication app(argc, argv);
+    QLoggingCategory::setFilterRules(QStringLiteral("*.*=true"));
+
+    QSurfaceFormat format;
+    format.setSamples(16);
+
+    TriangleWindow window;
+    window.setFormat(format);
+    window.resize(640, 480);
+    window.show();
+
+    window.setAnimating(true);
+
+//    return app.exec();
+}
+//! [2]
+//
+void app_exit() {}
+
+#ifdef Q_OS_NACL
+Q_GUI_MAIN(app_init, app_exit)
+#else
 int main(int argc, char **argv)
 {
     QGuiApplication app(argc, argv);
+    QLoggingCategory::setFilterRules(QStringLiteral("*.*=true"));
 
     QSurfaceFormat format;
     format.setSamples(16);
@@ -89,14 +115,15 @@ int main(int argc, char **argv)
 
     return app.exec();
 }
-//! [2]
+#endif
+
 
 
 //! [3]
 static const char *vertexShaderSource =
     "attribute highp vec4 posAttr;\n"
-    "attribute lowp vec4 colAttr;\n"
-    "varying lowp vec4 col;\n"
+    "attribute highp vec4 colAttr;\n"
+    "varying highp vec4 col;\n"
     "uniform highp mat4 matrix;\n"
     "void main() {\n"
     "   col = colAttr;\n"
@@ -123,12 +150,18 @@ void TriangleWindow::initialize()
 }
 //! [4]
 
+struct Vertex {
+    QVector2D position;
+    QVector3D color;
+};
+
 //! [5]
 void TriangleWindow::render()
 {
     const qreal retinaScale = devicePixelRatio();
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
 
+    glClearColor(0.1, 0.1, 0.15, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
 
     m_program->bind();
@@ -140,28 +173,49 @@ void TriangleWindow::render()
 
     m_program->setUniformValue(m_matrixUniform, matrix);
 
-    GLfloat vertices[] = {
-        0.0f, 0.707f,
-        -0.5f, -0.5f,
-        0.5f, -0.5f
-    };
+//    GLfloat vertices[] = {
+//        0.0f, 0.707f,
+//        -0.5f, -0.5f,
+//        0.5f, -0.5f
+//    };
 
-    GLfloat colors[] = {
-        1.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f
-    };
+//    GLfloat colors[] = {
+//        1.0f, 0.0f, 0.0f,
+//        0.0f, 1.0f, 0.0f,
+//        0.0f, 0.0f, 1.0f
+//    };
 
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, vertices);
-    glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, colors);
+    QVector<Vertex> vertices;
+    vertices.resize(3);
 
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
+    vertices[0].position = QVector2D(0.0, 0.707);
+    vertices[1].position = QVector2D(-0.5, -0.5);
+    vertices[2].position = QVector2D(0.5, -0.5);
+
+    vertices[0].color = QVector3D(1.0, 0.0, 0.0);
+    vertices[1].color = QVector3D(0.0, 1.0, 0.0);
+    vertices[2].color = QVector3D(0.0, 0.0, 1.0);
+
+    QVector<GLuint> m_vboIds;
+    int m_numberOfVBOs = 1;
+    m_vboIds.resize(m_numberOfVBOs);
+    glGenBuffers(m_numberOfVBOs, &m_vboIds.front());
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices.front(), GL_STATIC_DRAW);
+
+    quintptr offset = 0;
+    m_program->enableAttributeArray(m_posAttr);
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, sizeof(QVector2D), (const void *)offset);
+
+    offset += sizeof(QVector3D);
+    m_program->enableAttributeArray(m_colAttr);
+    glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, sizeof(QVector3D), (const void *)offset);
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(0);
+    m_program->disableAttributeArray(m_colAttr);
+    m_program->disableAttributeArray(m_posAttr);
 
     m_program->release();
 
