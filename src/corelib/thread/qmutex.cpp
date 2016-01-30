@@ -271,6 +271,9 @@ bool QMutex::tryLock(int timeout) QT_MUTEX_LOCK_NOEXCEPT
 */
 void QMutex::unlock() Q_DECL_NOTHROW
 {
+#if defined(Q_OS_NACL_EMSCRIPTEN) && !defined(Q_OS_NACL_EMSCRIPTEN_PTHREADS)
+    return;
+#endif
     QMutexData *current;
     if (fastTryUnlock(current))
         return;
