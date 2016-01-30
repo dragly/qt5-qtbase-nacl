@@ -64,6 +64,7 @@ private:
 
     QOpenGLShaderProgram *m_program;
     int m_frame;
+    QVector<GLuint> m_vboIds;
 };
 
 TriangleWindow::TriangleWindow()
@@ -108,19 +109,10 @@ Q_GUI_MAIN(app_init, app_exit)
 int main(int argc, char **argv)
 {
     QGuiApplication app(argc, argv);
-    QLoggingCategory::setFilterRules(QStringLiteral("*.*=true"));
-
-    QSurfaceFormat format;
-    format.setSamples(16);
-
-    TriangleWindow window;
-    window.setFormat(format);
-    window.resize(640, 480);
-    window.show();
-
-    window.setAnimating(true);
-
-    return app.exec();
+    app_init(argc, argv);
+    int retval =  app.exec();
+    app_exit();
+    return retval;
 }
 #endif
 
@@ -154,6 +146,10 @@ void TriangleWindow::initialize()
     m_posAttr = m_program->attributeLocation("posAttr");
     m_colAttr = m_program->attributeLocation("colAttr");
     m_matrixUniform = m_program->uniformLocation("matrix");
+    
+    int m_numberOfVBOs = 1;
+    m_vboIds.resize(m_numberOfVBOs);
+    glGenBuffers(m_numberOfVBOs, &m_vboIds.front());
 }
 //! [4]
 
@@ -164,7 +160,8 @@ struct Vertex {
 
 //! [5]
 void TriangleWindow::render()
-{
+{    
+    // qDebug() << "Render!!!!";
     const qreal retinaScale = devicePixelRatio();
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
 
@@ -202,11 +199,6 @@ void TriangleWindow::render()
     vertices[0].color = QVector3D(1.0, 0.0, 0.0);
     vertices[1].color = QVector3D(0.0, 1.0, 0.0);
     vertices[2].color = QVector3D(0.0, 0.0, 1.0);
-
-    QVector<GLuint> m_vboIds;
-    int m_numberOfVBOs = 1;
-    m_vboIds.resize(m_numberOfVBOs);
-    glGenBuffers(m_numberOfVBOs, &m_vboIds.front());
 
     glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices.front(), GL_STATIC_DRAW);

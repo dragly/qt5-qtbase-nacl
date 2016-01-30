@@ -147,8 +147,10 @@ if(!ENVIRONMENT_IS_PTHREAD) {
 
   var Graphics3D_SwapBuffers = function(context, callback) {
     // TODO double buffering.
+    // console.log("Graphics3D_SwapBuffers request received")
     var c = glue.getCompletionCallback(callback);
     Module.requestAnimationFrame(function() {
+      // console.log("Graphics3D_SwapBuffers calling back!")
       c(0);
     });
   };

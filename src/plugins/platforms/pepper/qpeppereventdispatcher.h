@@ -94,6 +94,7 @@ private:
     QHash<int, PepperTimerInfo> m_timerDetails;
     pp::MessageLoop m_messageLoop;
     pp::CompletionCallbackFactory<QPepperEventDispatcher> m_completionCallbackFactory;
+    bool m_hasActiveSchedule;
 };
 
 QT_END_NAMESPACE

@@ -45,6 +45,7 @@ QPepperEventDispatcher::QPepperEventDispatcher(QObject *parent)
     , m_currentTimerSerial(0)
     , m_messageLoop(pp::MessageLoop::GetCurrent())
     , m_completionCallbackFactory(this)
+    , m_hasActiveSchedule(false)
 {
     qCDebug(QT_PLATFORM_PEPPER_EVENTDISPATHCER) << "QPepperEventDispatcher()";
 }
@@ -53,9 +54,18 @@ QPepperEventDispatcher::~QPepperEventDispatcher() {}
 
 bool QPepperEventDispatcher::processEvents(QEventLoop::ProcessEventsFlags flags)
 {
+    int maxProcessedEvents = 2;
+    int processedCount = 0;
     do {
         QUnixEventDispatcherQPA::processEvents(flags);
-    } while (hasPendingEvents());
+        processedCount += 1;
+    } while (hasPendingEvents() && processedCount < maxProcessedEvents);
+    
+    // We need to give the control back to the browser due to lack of PTHREADS
+    // Schedule a new processing loop if we still have events pending
+    if(hasPendingEvents()) {
+        scheduleProcessEvents();
+    }
     return true;
 }
 
@@ -192,19 +202,23 @@ void QPepperEventDispatcher::timerCallback(int32_t result, int32_t timerSerial)
 
 void QPepperEventDispatcher::scheduleProcessEvents()
 {
-    qCDebug(QT_PLATFORM_PEPPER_EVENTDISPATHCER) << "scheduleProcessEvents";
-    pp::CompletionCallback processEvents
-        = m_completionCallbackFactory.NewCallback(&QPepperEventDispatcher::processEventsCallback);
-    int32_t result = m_messageLoop.PostWork(processEvents);
-    if (result != PP_OK)
-        qCDebug(QT_PLATFORM_PEPPER_EVENTDISPATHCER) << "scheduleProcessEvents PostWork error"
-                                                    << result;
+    qCDebug(QT_PLATFORM_PEPPER_EVENTDISPATHCER) << "scheduleProcessEvents" << m_hasActiveSchedule;
+    if(!m_hasActiveSchedule) {
+        m_hasActiveSchedule = true;
+        pp::CompletionCallback processEvents
+            = m_completionCallbackFactory.NewCallback(&QPepperEventDispatcher::processEventsCallback);
+        int32_t result = m_messageLoop.PostWork(processEvents);
+        if (result != PP_OK)
+            qCDebug(QT_PLATFORM_PEPPER_EVENTDISPATHCER) << "scheduleProcessEvents PostWork error"
+                                                        << result;
+    }
 }
 
 void QPepperEventDispatcher::processEventsCallback(int32_t status)
 {
     Q_UNUSED(status);
     qCDebug(QT_PLATFORM_PEPPER_EVENTDISPATHCER) << "processEvents";
+    m_hasActiveSchedule = false;
 
     processEvents();
 }

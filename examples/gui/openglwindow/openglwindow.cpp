@@ -56,6 +56,7 @@ OpenGLWindow::OpenGLWindow(QWindow *parent)
     , m_device(0)
 {
     setSurfaceType(QWindow::OpenGLSurface);
+    connect(&timer, &QTimer::timeout, this, &OpenGLWindow::renderNow);
 }
 //! [1]
 
@@ -117,9 +118,11 @@ void OpenGLWindow::exposeEvent(QExposeEvent *event)
 }
 //! [3]
 
+int count = 0;
+
 //! [4]
 void OpenGLWindow::renderNow()
-{
+{    
     if (!isExposed())
         return;
 
@@ -139,13 +142,17 @@ void OpenGLWindow::renderNow()
         initializeOpenGLFunctions();
         initialize();
     }
-
+    
+    // qDebug() << "Request render!";
     render();
-
+    
+    // qDebug() << "Request swapping buffers";
     m_context->swapBuffers(this);
 
-    if (m_animating)
-        renderLater();
+    if (m_animating) {
+        // qDebug() << "Request later anim";
+        // renderLater();
+    }
 }
 //! [4]
 
@@ -154,7 +161,9 @@ void OpenGLWindow::setAnimating(bool animating)
 {
     m_animating = animating;
 
-    if (animating)
-        renderLater();
+    if (animating) {
+        // renderLater();
+        timer.start(1000);
+    }
 }
 //! [5]

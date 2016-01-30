@@ -40,6 +40,7 @@
 
 #include <QtGui/QWindow>
 #include <QtGui/QOpenGLFunctions>
+#include <QTimer>
 
 QT_BEGIN_NAMESPACE
 class QPainter;
@@ -77,6 +78,6 @@ private:
 
     QOpenGLContext *m_context;
     QOpenGLPaintDevice *m_device;
+    QTimer timer;
 };
 //! [1]
-

@@ -189,13 +189,15 @@ int QEventDispatcherUNIXPrivate::doSelect(QEventLoop::ProcessEventsFlags flags, 
 #ifndef Q_OS_NACL
         int wakeUpFd = initThreadWakeUp();
         highest = qMax(highest, wakeUpFd);
-#endif
 
         nsel = q->select(highest + 1,
                          &sn_vec[0].select_fds,
                          &sn_vec[1].select_fds,
                          &sn_vec[2].select_fds,
                          timeout);
+#else
+        nsel = 0;
+#endif
     } while (nsel == -1 && (errno == EINTR || errno == EAGAIN));
 
     if (nsel == -1) {
