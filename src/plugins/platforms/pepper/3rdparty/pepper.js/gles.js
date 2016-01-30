@@ -56,6 +56,10 @@ if(!ENVIRONMENT_IS_PTHREAD) {
     if (_context === undefined) {
       return;
     }
+    if(buffer == 0) {
+      // TODO buffer = 0 should release previously bound buffers
+      return;
+    }
     var _buffer = resources.resolve(buffer, BUFFER_RESOURCE);
     if (_buffer === undefined) {
       return;
@@ -66,11 +70,19 @@ if(!ENVIRONMENT_IS_PTHREAD) {
   // ppapi (GLenum, GLuint) => void
   // webgl (GLenum, WebGLFramebuffer) => void
   var OpenGLES2_BindFramebuffer = function(context, target, framebuffer) {
+    console.warn("Binding framebuffer " + framebuffer)
     var _context = resources.resolve(context, GRAPHICS_3D_RESOURCE);
     if (_context === undefined) {
       return;
     }
-    var _framebuffer = coerceFramebuffer(framebuffer);
+    if(framebuffer == 0) {
+      // framebuffer = 0 is the default framebuffer provided by the system
+      // and is translated to null in WebGL
+      _context.ctx.bindFramebuffer(target, null);
+      return;
+    }
+    // var _framebuffer = coerceFramebuffer(framebuffer);
+    var _framebuffer = (framebuffer);
     _context.ctx.bindFramebuffer(target, _framebuffer);
   }
 
@@ -81,7 +93,8 @@ if(!ENVIRONMENT_IS_PTHREAD) {
     if (_context === undefined) {
       return;
     }
-    var _renderbuffer = coerceRenderbuffer(renderbuffer);
+    // var _renderbuffer = coerceRenderbuffer(renderbuffer);
+    var _renderbuffer = (renderbuffer);
     _context.ctx.bindRenderbuffer(target, _renderbuffer);
   }
 
@@ -163,6 +176,7 @@ if(!ENVIRONMENT_IS_PTHREAD) {
     if (_context === undefined) {
       return 0x8CDD;
     }
+    console.log("Checking framebuffer status")
     return _context.ctx.checkFramebufferStatus(target);
   }
 
@@ -446,7 +460,9 @@ if(!ENVIRONMENT_IS_PTHREAD) {
     if (_context === undefined) {
       return;
     }
-    var _renderbuffer = coerceRenderbuffer(renderbuffer);
+    // var _renderbuffer = coerceRenderbuffer(renderbuffer);
+    console.log("OpenGLES2_FramebufferRenderbuffer")
+    var _renderbuffer = (renderbuffer);
     _context.ctx.framebufferRenderbuffer(target, attachment, renderbuffertarget, _renderbuffer);
   }
 
@@ -461,6 +477,7 @@ if(!ENVIRONMENT_IS_PTHREAD) {
     if (_texture === undefined) {
       return;
     }
+    console.log("OpenGLES2_FramebufferTexture2D")
     _context.ctx.framebufferTexture2D(target, attachment, textarget, _texture.native, level);
   }
 
@@ -728,7 +745,9 @@ if(!ENVIRONMENT_IS_PTHREAD) {
     if (_context === undefined) {
       return false;
     }
-    var _framebuffer = coerceFramebuffer(framebuffer);
+    console.warn("Is framebuffer?")
+    // var _framebuffer = coerceFramebuffer(framebuffer);
+    var _framebuffer = (framebuffer);
     return _context.ctx.isFramebuffer(_framebuffer);
   }
 
@@ -753,7 +772,8 @@ if(!ENVIRONMENT_IS_PTHREAD) {
     if (_context === undefined) {
       return false;
     }
-    var _renderbuffer = coerceRenderbuffer(renderbuffer);
+    // var _renderbuffer = coerceRenderbuffer(renderbuffer);
+    var _renderbuffer = (renderbuffer);
     return _context.ctx.isRenderbuffer(_renderbuffer);
   }
 
