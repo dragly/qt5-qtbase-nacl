@@ -130,13 +130,10 @@ void OpenGLWindow::renderNow()
         m_context->setFormat(requestedFormat());
         m_context->create();
 
-        qDebug() << "Context in c++ is " << m_context;
-
         needsInitialize = true;
     }
 
     bool currented = m_context->makeCurrent(this);
-    qDebug() << "Currented: " << currented;
 
     if (needsInitialize) {
         initializeOpenGLFunctions();
@@ -161,4 +158,3 @@ void OpenGLWindow::setAnimating(bool animating)
         renderLater();
 }
 //! [5]
-

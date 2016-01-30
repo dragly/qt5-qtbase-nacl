@@ -73,27 +73,34 @@ TriangleWindow::TriangleWindow()
 }
 //! [1]
 
+TriangleWindow *window;
+
 //! [2]
 void app_init(int argc, char **argv)
 {
+    qDebug() << "Starting app";
 //    QGuiApplication app(argc, argv);
-    QLoggingCategory::setFilterRules(QStringLiteral("*.*=true"));
+    // QLoggingCategory::setFilterRules(QStringLiteral("*.*=true"));
 
     QSurfaceFormat format;
     format.setSamples(16);
+    qDebug() << "Starting window";
 
-    TriangleWindow window;
-    window.setFormat(format);
-    window.resize(640, 480);
-    window.show();
+    window = new TriangleWindow();
+    window->setFormat(format);
+    window->resize(640, 480);
+    window->show();
+    qDebug() << "Start animation";
 
-    window.setAnimating(true);
-
+    window->setAnimating(true);
+    qDebug() << "Animation started!";
 //    return app.exec();
 }
 //! [2]
 //
-void app_exit() {}
+void app_exit() {
+    delete window;
+}
 
 #ifdef Q_OS_NACL
 Q_GUI_MAIN(app_init, app_exit)

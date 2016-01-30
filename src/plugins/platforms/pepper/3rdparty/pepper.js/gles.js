@@ -565,8 +565,6 @@ if(!ENVIRONMENT_IS_PTHREAD) {
   }
 
   var OpenGLES2_GetProgramiv = function(context, program, pname, params) {
-    console.log("OpenGLES2_GetProgramiv " + pname)
-    console.trace()
     if(pname == 35716 || pname == 35720) { 
       // 35716 = GL_INFO_LOG_LENGTH (0x8B84)
       // 35720 = GL_SHADER_SOURCE_LENGTH (0x8B88)
@@ -606,7 +604,6 @@ if(!ENVIRONMENT_IS_PTHREAD) {
       break;
     default:
       console.warn("OpenGLES2_GetProgramiv unknown parameter type, assume i32")
-      console.trace()
       setValue(params, result, 'i32');
       break;
     }
@@ -621,8 +618,6 @@ if(!ENVIRONMENT_IS_PTHREAD) {
   }
 
   var OpenGLES2_GetShaderiv = function(context, shader, pname, params) {
-    console.log("OpenGLES2_GetShaderiv")
-    console.trace()
     var _context = resources.resolve(context, GRAPHICS_3D_RESOURCE);
     if (_context === undefined) {
       return 0;
@@ -1159,10 +1154,10 @@ if(!ENVIRONMENT_IS_PTHREAD) {
   var OpenGLES2_UseProgram = function(context, program) {
     if(program === 0) {
       // TODO Is useprogram(0) okay to call?
-      console.log("OpenGLES2_UseProgram: Requested to use program 0. "
-                + "This is not a defined operation in WebGL, but in legacy "
-                + "code it is a request to release the program. "
-                + "Nothing will be done when calling glUseProgram(0).")
+      // OpenGLES2_UseProgram: Requested to use program 0. "
+      // This is not a defined operation in WebGL, but in legacy
+      // code it is a request to release the program.
+      // Here, nothing will be done when calling glUseProgram(0).
       return
     }
     var _context = resources.resolve(context, GRAPHICS_3D_RESOURCE);
@@ -1245,8 +1240,6 @@ if(!ENVIRONMENT_IS_PTHREAD) {
   // ppapi (GLuint, GLint, GLenum, GLboolean, GLsizei, const void*) => void
   // webgl (GLuint, GLint, GLenum, GLboolean, GLsizei, GLintptr) => void
   var OpenGLES2_VertexAttribPointer = function(context, indx, size, type, normalized, stride, ptr) {
-    console.log(context+ " " + indx+ " " + size+ " " + type+ " " + normalized+ " " + stride+ " " + ptr)
-    console.trace()
     var _context = resources.resolve(context, GRAPHICS_3D_RESOURCE);
     if (_context === undefined) {
       return;

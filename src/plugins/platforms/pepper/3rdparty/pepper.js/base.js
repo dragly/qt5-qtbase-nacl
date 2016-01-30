@@ -119,33 +119,33 @@ if(!ENVIRONMENT_IS_PTHREAD) {
   ]);
 
   var MessageLoop_InstanceHandle = function(instance) {
-    console.warn("MessageLoop_InstanceHandle is not implemented")
+    // console.warn("MessageLoop_InstanceHandle is not implemented")
     return 1;
   };
 
   var MessageLoop_GetForMainThread = function() {
-    console.warn("MessageLoop_GetForMainThread is not implemented")
+    // console.warn("MessageLoop_GetForMainThread is not implemented")
     return 1;
   };
 
   var MessageLoop_GetCurrent = function() {
-    console.warn("MessageLoop_GetCurrent is not implemented")
+    // console.warn("MessageLoop_GetCurrent is not implemented")
     return 1;
   };
 
   var MessageLoop_Run = function(resource) {
-    console.warn("MessageLoop_Run is not implemented " + resource)
+    // console.warn("MessageLoop_Run is not implemented " + resource)
     return 1;
   };
 
   var MessageLoop_PostWork = function(resource, callback, delay_ms) {
-    console.warn("MessageLoop_PostWork is not implemented " + resource)
-    return 2;
+    // console.warn("MessageLoop_PostWork is not implemented " + resource)
+    return 0;
   };
 
   var MessageLoop_PostQuit = function(resource, should_destroy) {
-    console.warn("MessageLoop_PostQuit is not implemented " + resource)
-    return 1;
+    // console.warn("MessageLoop_PostQuit is not implemented " + resource)
+    return 0;
   };
 
   registerInterface("PPB_MessageLoop;1.0", [
