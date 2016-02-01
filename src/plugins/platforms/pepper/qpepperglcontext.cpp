@@ -35,6 +35,8 @@
 
 #include <qglobal.h>
 
+// #include <GLES2/gl2.h>
+
 #ifndef QT_NO_OPENGL
 #include "qpepperglcontext.h"
 
@@ -44,8 +46,19 @@
 
 #include <ppapi/cpp/graphics_3d.h>
 #include <ppapi/cpp/graphics_3d_client.h>
+
+#ifdef Q_OS_NACL_EMSCRIPTEN
+// Emscriptens GLES2 API is more complete than pepper.js
+// In the future, this might change. We should then include <GLES2/gl2.h> then.
+#include "3rdparty/emscripten/GLES2/gl2.h"
+#include "3rdparty/emscripten/GLES2/gl2ext.h"
+
+#else
+
 #include <ppapi/gles2/gl2ext_ppapi.h>
-#include <GLES2/gl2.h>
+
+#endif
+
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QThread>
@@ -110,21 +123,26 @@ bool QPepperGLContext::makeCurrent(QPlatformSurface *surface)
         }
         m_currentSize = newSize;
     }
-
+#ifndef Q_OS_NACL_EMSCRIPTEN
     glSetCurrentContextPPAPI(m_context.pp_resource());
+#endif
     return true;
 }
 
 void QPepperGLContext::doneCurrent()
 {
     qCDebug(QT_PLATFORM_PEPPER_GLCONTEXT) << "doneCurrent";
+#ifndef Q_OS_NACL_EMSCRIPTEN    
     glSetCurrentContextPPAPI(0);
+#endif
 }
 
 QFunctionPointer QPepperGLContext::getProcAddress(const QByteArray &procName)
 {
     qCDebug(QT_PLATFORM_PEPPER_GLCONTEXT) << "getProcAddress" << procName;
+#ifndef Q_OS_NACL_EMSCRIPTEN
     glSetCurrentContextPPAPI(m_context.pp_resource());
+#endif
 //    const PPB_OpenGLES2* functionPointers = glGetInterfacePPAPI();
     if (procName == QByteArrayLiteral("glActiveTexture")) {
         return reinterpret_cast<QFunctionPointer>(glActiveTexture);
@@ -707,10 +725,12 @@ void QPepperGLContext::flushCallback(int32_t)
 bool QPepperGLContext::initGl()
 {
     qCDebug(QT_PLATFORM_PEPPER_GLCONTEXT) << "initGl";
+#ifndef Q_OS_NACL_EMSCRIPTEN
     if (!glInitializePPAPI(pp::Module::Get()->get_browser_interface())) {
         qWarning("Unable to initialize GL PPAPI!\n");
         return false;
     }
+#endif
     m_currentSize = QPepperInstancePrivate::get()->geometry().size();
     QSurfaceFormat f = format();
 
@@ -728,7 +748,9 @@ bool QPepperGLContext::initGl()
     if (!instance->BindGraphics(m_context)) {
         qWarning("Unable to bind 3d context!\n");
         m_context = pp::Graphics3D();
+#ifndef Q_OS_NACL_EMSCRIPTEN
         glSetCurrentContextPPAPI(0);
+#endif
         return false;
     }
 

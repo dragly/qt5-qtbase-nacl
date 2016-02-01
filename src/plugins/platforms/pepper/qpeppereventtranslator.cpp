@@ -182,8 +182,12 @@ bool QPepperEventTranslator::processKeyEvent(const pp::KeyboardInputEvent &event
 
 bool QPepperEventTranslator::processCharacterEvent(const pp::KeyboardInputEvent &event)
 {
-    QString text
-        = QString::fromUtf8(event.GetCharacterText().AsString().c_str()); // ### wide characters?
+    // TODO: pepper.js currently (2016-02-01) has not implemented GetCharacterText
+    // blank string is the default argument anyways and hopefully it will cause Qt to
+    // convert the event to a string eventually?
+
+    QString text;
+    text = QString::fromUtf8(event.GetCharacterText().AsString().c_str()); // ### wide characters?
     Qt::KeyboardModifiers modifiers = translatePepperKeyModifiers(event.GetModifiers());
     Qt::Key key = translatePepperKey(currentPepperKey, 0);
 

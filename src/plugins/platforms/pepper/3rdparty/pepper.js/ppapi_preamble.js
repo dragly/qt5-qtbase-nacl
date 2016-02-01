@@ -305,10 +305,10 @@ var createInterface = function(name, functions) {
   interfaces[name] = ptr;
 };
 
-var Module = {
-  "noInitialRun": true,
-  "noExitRuntime": true,
-  "onRuntimeInitialized": function() {
+var Module = Module || {};
+Module["noInitialRun"] = true;
+Module["noExitRuntime"] = true;
+Module["onRuntimeInitialized"] = function() {
     for (var i = 0; i < declaredInterfaces.length; i++) {
       var inf = declaredInterfaces[i];
       if (inf.supported === undefined || inf.supported()) {
@@ -319,8 +319,7 @@ var Module = {
     }
     declaredInterfaces = [];
     doCreateInstance();
-  }
-};
+  };
 
 var CreateInstance = function(width, height, shadow_instance) {
   if (shadow_instance === undefined) {

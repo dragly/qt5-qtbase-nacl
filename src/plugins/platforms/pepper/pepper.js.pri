@@ -71,8 +71,31 @@ SOURCES += \
     # rest of libppapi is implemented in JavasScript and added to the build
     # with '--pre-js' at link time.
 
+# Emscripten provides a better GLES2 API directly than pepper.js
+# TODO Consider adding back this when pepper.js has better GLES2 support
 # OpenGL
-PPAPI_GLES_SOURCE= $$(NACL_SDK_ROOT)/src/ppapi_gles2
-SOURCES +=\
-    $${PPAPI_GLES_SOURCE}/gles2.c \
-    $${PPAPI_GLES_SOURCE}/gl2ext_ppapi.c \
+# PPAPI_GLES_SOURCE= $$(NACL_SDK_ROOT)/src/ppapi_gles2
+# SOURCES +=\
+#    $${PPAPI_GLES_SOURCE}/gles2.c \
+#    $${PPAPI_GLES_SOURCE}/gl2ext_ppapi.c \
+#}
+
+OTHER_FILES += \
+    $$PWD/3rdparty/pepper.js/audio.js \
+    $$PWD/3rdparty/pepper.js/base.js \
+    $$PWD/3rdparty/pepper.js/common.js \
+    $$PWD/3rdparty/pepper.js/file.js \
+    $$PWD/3rdparty/pepper.js/gles.js \
+    $$PWD/3rdparty/pepper.js/gles_ext.js \
+    $$PWD/3rdparty/pepper.js/graphics_2d.js \
+    $$PWD/3rdparty/pepper.js/graphics_3d.js \
+    $$PWD/3rdparty/pepper.js/input_events.js \
+    $$PWD/3rdparty/pepper.js/load_deps.js \
+    $$PWD/3rdparty/pepper.js/loadnacl.js \
+    $$PWD/3rdparty/pepper.js/mouse_lock.js \
+    $$PWD/3rdparty/pepper.js/ppapi_preamble.js \
+    $$PWD/3rdparty/pepper.js/testing.js \
+    $$PWD/3rdparty/pepper.js/url_loader.js \
+    $$PWD/3rdparty/pepper.js/view.js \
+    $$PWD/3rdparty/pepper.js/web_socket.js \
+    $$PWD/3rdparty/pepper.js/LICENSE
