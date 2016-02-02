@@ -5,12 +5,12 @@
 // TODO(ncbray): re-enable once Emscripten stops including code with octal values.
 //"use strict";
 
-var ENVIRONMENT_IS_PTHREAD; // is set to true in pthread-main.js if we are in a worker
-if(!ENVIRONMENT_IS_PTHREAD) { 
-  
-var doCreateInstance = function() {
-    console.log("doCreateInstance should be set by loadnacl.js");
+var doCreateInstance = doCreateInstance || function () {
+    console.log("Please call QtLoader.load() instead of loading your application script.")
 }
+
+var ENVIRONMENT_IS_PTHREAD; // is set to true in pthread-main.js if we are in a worker
+if(!ENVIRONMENT_IS_PTHREAD) {
 
 var clamp = function(value, min, max) {
   if (value < min) {
@@ -319,7 +319,7 @@ Module["onRuntimeInitialized"] = function() {
     }
     declaredInterfaces = [];
     doCreateInstance();
-  };
+};
 
 var CreateInstance = function(width, height, shadow_instance) {
   if (shadow_instance === undefined) {
