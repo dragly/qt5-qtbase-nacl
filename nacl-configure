@@ -230,6 +230,12 @@ if [[ $TOOLCHAIN == emscripten ]]
     NACL_CONFIGURE_LINE="$NACL_CONFIGURE_LINE -no-xlib -no-xcb-xlib -no-eglfs"
 fi
 
+# emscripten needs a static build for plugins to work properly
+if [[ $TOOLCHAIN == emscripten ]]
+  then
+    NACL_CONFIGURE_LINE="$NACL_CONFIGURE_LINE -static"
+fi
+
 # set release/debug build
 NACL_CONFIGURE_LINE="$NACL_CONFIGURE_LINE -$OPTIMIZE"
 
@@ -246,4 +252,3 @@ echo $NACL_CONFIGURE_LINE
 
 # Run configure
 $NACL_CONFIGURE_LINE
-

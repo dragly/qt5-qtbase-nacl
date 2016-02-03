@@ -53,6 +53,9 @@
 #include "QtCore/qjsonobject.h"
 #include "QtCore/qjsondocument.h"
 #include "QtCore/qendian.h"
+#include <QDebug>
+#include <iostream>
+#include <iomanip>
 #ifdef Q_OS_WIN
 #  include "QtCore/qt_windows.h"
 #endif
@@ -105,9 +108,23 @@ public:
     bool isPlugin();
 
     static inline QJsonDocument fromRawMetaData(const char *raw) {
+        qDebug() << "FromRawMetadata:";
+        for(int i = 0; i < 400; i++) {
+            if(int(raw[i]) >= 32 && int(raw[i]) <= 126) {
+                std::cout << "'" << raw[i] << "',  ";
+            } else {
+                std::cout << "0xxx, ";
+            }
+        }
+
         raw += strlen("QTMETADATA  ");
         // the size of the embedded JSON object can be found 8 bytes into the data (see qjson_p.h),
         // but doesn't include the size of the header (8 bytes)
+
+        qDebug() << "From raw meta data with size: ";
+        uint size = qFromLittleEndian<uint>(*(const uint *)(raw + 8)) + 8;
+        qDebug() << size;
+
         QByteArray json(raw, qFromLittleEndian<uint>(*(const uint *)(raw + 8)) + 8);
         return QJsonDocument::fromBinaryData(json);
     }

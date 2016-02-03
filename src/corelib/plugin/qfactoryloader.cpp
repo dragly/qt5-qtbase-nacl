@@ -109,7 +109,7 @@ QFactoryLoader::QFactoryLoader(const char *iid,
     qt_factory_loaders()->append(this);
 }
 
-
+#define Q_OS_NACL
 
 void QFactoryLoader::update()
 {
@@ -126,7 +126,7 @@ void QFactoryLoader::update()
 
         QString path = pluginDir + d->suffix;
 
-        if (qt_debug_component())
+        if (true || qt_debug_component())
             qDebug() << "QFactoryLoader::QFactoryLoader() checking directory path" << path << "...";
 
         if (!QDir(path).exists(QLatin1String(".")))
@@ -159,7 +159,7 @@ void QFactoryLoader::update()
 #endif
             }
 #endif
-            if (qt_debug_component()) {
+            if (true || qt_debug_component()) {
                 qDebug() << "QFactoryLoader::QFactoryLoader() looking at" << fileName;
             }
             library = QLibraryPrivate::findOrCreate(QFileInfo(fileName).canonicalFilePath());
@@ -170,7 +170,7 @@ void QFactoryLoader::update()
 #endif
 
             if (!library->isPlugin()) {
-                if (qt_debug_component()) {
+                if (true || qt_debug_component()) {
                     qDebug() << library->errorString << endl
                              << "         not a plugin";
                 }
@@ -194,11 +194,12 @@ void QFactoryLoader::update()
                 for (int i = 0; i < k.size(); ++i)
                     keys += d->cs ? k.at(i).toString() : k.at(i).toString().toLower();
             }
-            if (qt_debug_component())
+            if (true || qt_debug_component())
                 qDebug() << "Got keys from plugin meta data" << keys;
 
 
             if (!metaDataOk) {
+                qDebug() << "Metadata not ok!";
                 library->release();
 #ifndef Q_OS_NACL
                 continue;
