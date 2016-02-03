@@ -86,24 +86,19 @@ void Q_CORE_EXPORT qRegisterStaticPluginFunction(QStaticPlugin staticPlugin);
 // PNaCl is Q_CC_CLANG. TODO: should it not set Q_OF_ELF?
 #  define QT_PLUGIN_VERIFICATION_SECTION
 #  define QT_PLUGIN_METADATA_SECTION
-static_assert(false, "Wrong type of metadata pnacl");
 #elif (defined(Q_OF_ELF) || defined(Q_OS_WIN)) && (defined (Q_CC_GNU) || defined(Q_CC_CLANG))
-#warning "Metadata alignment not set, this should only happen with g++"
 #  define QT_PLUGIN_METADATA_SECTION \
     __attribute__ ((section (".qtmetadata"))) __attribute__((used))
 #elif defined(Q_OS_MAC)
-static_assert(false, "Wrong type of metadata mac");
 // TODO: Implement section parsing on Mac
 #  define QT_PLUGIN_METADATA_SECTION \
     __attribute__ ((section ("__TEXT,qtmetadata"))) __attribute__((used))
 #elif defined(Q_CC_MSVC)
-static_assert(false, "Wrong type of metadata windows");
 // TODO: Implement section parsing for MSVC
 #pragma section(".qtmetadata",read,shared)
 #  define QT_PLUGIN_METADATA_SECTION \
     __declspec(allocate(".qtmetadata"))
 #else
-static_assert(false, "Wrong type of metadata none");
 #  define QT_PLUGIN_VERIFICATION_SECTION
 #  define QT_PLUGIN_METADATA_SECTION
 #endif

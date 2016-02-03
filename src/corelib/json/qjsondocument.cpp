@@ -221,42 +221,28 @@ const char *QJsonDocument::rawData(int *size) const
  */
 QJsonDocument QJsonDocument::fromBinaryData(const QByteArray &data, DataValidation validation)
 {
-    qDebug() << "Load JSON of data with size: " << data.size();
-    if (data.size() < (int)(sizeof(QJsonPrivate::Header) + sizeof(QJsonPrivate::Base))) {
-        qDebug() << "Data size to little" << data.size();
+    if (data.size() < (int)(sizeof(QJsonPrivate::Header) + sizeof(QJsonPrivate::Base)))
         return QJsonDocument();
-    }
 
     QJsonPrivate::Header h;
     memcpy(&h, data.constData(), sizeof(QJsonPrivate::Header));
     QJsonPrivate::Base root;
     memcpy(&root, data.constData() + sizeof(QJsonPrivate::Header), sizeof(QJsonPrivate::Base));
 
-    qDebug() << "Header is:";
-    qDebug() << "Tag: " << h.tag;
-    qDebug() << "Version: " << h.version;
-    qDebug() << "Root is:";
-    qDebug() << "Size: " << root.size;
-
     // do basic checks here, so we don't try to allocate more memory than we can.
     if (h.tag != QJsonDocument::BinaryFormatTag || h.version != 1u ||
-        sizeof(QJsonPrivate::Header) + root.size > (uint)data.size()) {
-        qDebug() << "Too big or tag bad" << root.size << sizeof(QJsonPrivate::Header) << h.version << data.size();
+        sizeof(QJsonPrivate::Header) + root.size > (uint)data.size())
         return QJsonDocument();
-    }
 
     const uint size = sizeof(QJsonPrivate::Header) + root.size;
     char *raw = (char *)malloc(size);
-    if (!raw) {
-        qDebug() << "Could not malloc raw";
+    if (!raw)
         return QJsonDocument();
-    }
 
     memcpy(raw, data.constData(), size);
     QJsonPrivate::Data *d = new QJsonPrivate::Data(raw, size);
 
     if (validation != BypassValidation && !d->valid()) {
-        qDebug() << "Not valid!";
         delete d;
         return QJsonDocument();
     }
