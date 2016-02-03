@@ -290,7 +290,7 @@ contains(qt_module_deps, qml): \
                 "test -d $$qmlTargetPath && rm -r $$qmlTargetPath; " \
                 "mkdir -p $$qmlTargetPath && " \
                 "for p in $$QMLPATHS; do" \
-                    "rsync -r --exclude='*.a' --exclude='*.so' --exclude='*.js' --exclude='*.prl' --exclude='*.qmltypes' " \
+                    "rsync -r --exclude='*.a' --exclude='*.so' --exclude='*.prl' --exclude='*.qmltypes' " \
                     "\$\$p/ $$qmlTargetPath; done"
         }
     }
