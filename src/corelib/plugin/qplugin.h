@@ -78,6 +78,9 @@ void Q_CORE_EXPORT qRegisterStaticPluginFunction(QStaticPlugin staticPlugin);
 // For this purpose, aligning to 32 bits would suffice.
 // Using 64 bits is probably overkill, but should ensure that this problem doesn't
 // surface in other parts of the code.
+
+// TODO Do we need "section" and "used" attributes on Emscripten?
+// TODO Should we reduce alignment to 32 bits?
 #  define QT_PLUGIN_METADATA_SECTION \
     __attribute__ ((section (".qtmetadata"))) __attribute__((used)) __attribute__((aligned(64)))
 #elif defined(Q_OS_PNACL)
