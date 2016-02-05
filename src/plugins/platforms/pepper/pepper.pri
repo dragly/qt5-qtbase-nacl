@@ -24,6 +24,14 @@ HEADERS += \
            $$PWD/qpepperservices.h \
            $$PWD/qpeppertheme.h \
 
+emscripten {
+    HEADERS += \
+               $$PWD/3rdparty/emscripten/GLES2/gl2.h \
+               $$PWD/3rdparty/emscripten/GLES2/gl2ext.h \
+               $$PWD/3rdparty/emscripten/GLES2/gl2platform.h \
+
+}
+
 SOURCES += \
            $$PWD/qpepperbackingstore.cpp \
            $$PWD/qpepperclipboard.cpp \

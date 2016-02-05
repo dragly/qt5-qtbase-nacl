@@ -35,8 +35,6 @@
 
 #include <qglobal.h>
 
-// #include <GLES2/gl2.h>
-
 #ifndef QT_NO_OPENGL
 #include "qpepperglcontext.h"
 
