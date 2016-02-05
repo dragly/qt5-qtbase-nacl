@@ -271,7 +271,6 @@ contains(qt_module_deps, qml): \
             macx-xcode: QMAKE_POST_LINK += "$p/ $$qmlTargetPath; done"
             else: QMAKE_POST_LINK += "\$\$p/ $$qmlTargetPath; done"
         } else:emscripten {
-            # iOS: flat bundle layout (no Contents/Resources)
             isEmpty(QMAKE_QML_BUNDLE_PATH):QMAKE_QML_BUNDLE_PATH = "qt_qml"
             qmlTargetPath = $$OUT_PWD/$$QMAKE_QML_BUNDLE_PATH
             qtconfTargetPath = $$OUT_PWD/qt.conf
@@ -292,6 +291,10 @@ contains(qt_module_deps, qml): \
                 "for p in $$QMLPATHS; do" \
                     "rsync -r --exclude='*.a' --exclude='*.so' --exclude='*.prl' --exclude='*.qmltypes' " \
                     "\$\$p/ $$qmlTargetPath; done"
+
+            # Add the folder and qt.conf to be preloaded by emscripten
+            QMAKE_LFLAGS += --preload-file qt_qml
+            QMAKE_LFLAGS += --preload-file qt.conf
         }
     }
 }
