@@ -54,18 +54,26 @@ QPepperEventDispatcher::~QPepperEventDispatcher() {}
 
 bool QPepperEventDispatcher::processEvents(QEventLoop::ProcessEventsFlags flags)
 {
+#ifdef Q_OS_NACL_EMSCRIPTEN
+    // We need to give the control back to the browser due to lack of PTHREADS
+    // Limit the number of events that may be processed at the time
+    // TODO: Set maxProcessedEvents to the actual number of pending events, the real issue is that events may spawn new events
     int maxProcessedEvents = 2;
     int processedCount = 0;
     do {
         QUnixEventDispatcherQPA::processEvents(flags);
         processedCount += 1;
     } while (hasPendingEvents() && processedCount < maxProcessedEvents);
-    
-    // We need to give the control back to the browser due to lack of PTHREADS
     // Schedule a new processing loop if we still have events pending
     if(hasPendingEvents()) {
         scheduleProcessEvents();
     }
+#else
+    do {
+        QUnixEventDispatcherQPA::processEvents(flags);
+        processedCount += 1;
+    } while (hasPendingEvents());
+#endif
     return true;
 }
 
