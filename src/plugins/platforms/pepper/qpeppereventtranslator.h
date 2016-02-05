@@ -69,7 +69,6 @@ Q_SIGNALS:
 
 private:
     uint32_t currentPepperKey;
-    QString currentPepperText;
     QPoint currentMouseGlobalPos;
 };
 
